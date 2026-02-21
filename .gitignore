@@ -1,0 +1,133 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+nul
+
+# VS Code (uncomment if you want to ignore)
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+/coverage/
+pubspec.lock
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Android specific
+/android/.gradle
+/android/captures/
+/android/gradlew
+/android/gradlew.bat
+/android/local.properties
+/android/key.properties
+/android/**/*.keystore
+/android/**/*.jks
+
+# iOS specific (if added later)
+/ios/Pods/
+/ios/.symlinks/
+/ios/Flutter/Flutter.framework
+/ios/Flutter/Flutter.podspec
+/ios/ServiceDefinitions.json
+/ios/Runner/GeneratedPluginRegistrant.*
+
+# macOS specific (if added later)
+/macos/Pods/
+/macos/Flutter/ephemeral/
+
+# Windows specific
+/windows/flutter/ephemeral/
+/windows/.vs/
+/windows/*.sln
+/windows/*.vcxproj*
+/windows/x64/
+/windows/x86/
+
+# Linux specific (if added later)
+/linux/flutter/ephemeral/
+
+# Web specific (if added later)
+/web/flutter/ephemeral/
+
+# Secrets and configuration files
+.env
+.env.local
+.env.*.local
+*.secret
+*.key
+*.pem
+*.p12
+*.pfx
+
+# IDE and editor files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+*.vscode-test/
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+*.pid
+*.seed
+*.pid.lock
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+
+# Test related
+/test_coverage/
+/coverage/
+*.lcov
+
+# Generated files
+*.g.dart
+*.freezed.dart
+*.mocks.dart

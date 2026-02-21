@@ -1,0 +1,204 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+      build_number:
+        description: 'Build number'
+        required: true
+        default: '1'
+
+env:
+  FLUTTER_VERSION: '3.24.0'
+
+jobs:
+  # ============================================
+  # Android Build Job
+  # ============================================
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Inject server URL (if configured)
+        if: ${{ secrets.SONIC_SERVER_URL != '' }}
+        run: |
+          sed -i "s|final _urlController = TextEditingController();|final _urlController = TextEditingController(text: '${{ secrets.SONIC_SERVER_URL }}');|g" \
+            lib/ui/screens/server_config_screen.dart
+          echo "Server URL injected successfully"
+
+      - name: Build Android Debug APK
+        run: flutter build apk --debug
+
+      - name: Build Android Release APK
+        run: flutter build apk --release
+
+      - name: Upload Android Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+
+      - name: Upload Android Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  # ============================================
+  # Windows Build Job
+  # ============================================
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Inject server URL (if configured)
+        if: ${{ secrets.SONIC_SERVER_URL != '' }}
+        shell: pwsh
+        run: |
+          (Get-Content lib/ui/screens/server_config_screen.dart) -replace \
+            "final _urlController = TextEditingController();", \
+            "final _urlController = TextEditingController(text: '${{ secrets.SONIC_SERVER_URL }}');" | \
+            Set-Content lib/ui/screens/server_config_screen.dart
+          Write-Host "Server URL injected successfully"
+
+      - name: Build Windows Release
+        run: flutter build windows --release
+
+      - name: Package Windows EXE
+        shell: pwsh
+        run: |
+          $version = if ($env:GITHUB_REF -like 'refs/tags/v*') { 
+            $env:GITHUB_REF -replace 'refs/tags/v', '' 
+          } else { 
+            $env:INPUT_VERSION 
+          }
+          
+          $buildDir = "build/windows/x64/runner/Release"
+          $outputName = "sonic_player_windows_v${version}"
+          
+          # Create zip archive
+          Compress-Archive -Path "$buildDir\*" -DestinationPath "${outputName}.zip" -Force
+          
+          Write-Host "Windows build packaged as ${outputName}.zip"
+
+      - name: Upload Windows Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: sonic_player_windows_*.zip
+
+  # ============================================
+  # Create Release
+  # ============================================
+  create-release:
+    needs: [build-android, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Android Debug APK
+        uses: actions/download-artifact@v4
+        with:
+          name: android-debug-apk
+          path: ./artifacts/android
+
+      - name: Download Android Release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: android-release-apk
+          path: ./artifacts/android
+
+      - name: Download Windows Build
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-release
+          path: ./artifacts/windows
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=${{ github.event.inputs.version }}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release v${{ steps.get_version.outputs.version }}
+          tag_name: v${{ steps.get_version.outputs.version }}
+          body: |
+            ## Sonic Player v${{ steps.get_version.outputs.version }}
+            
+            ### Downloads
+            
+            - **Android Debug APK**: `app-debug.apk` (for testing)
+            - **Android Release APK**: `app-release.apk` (recommended for daily use)
+            - **Windows**: `sonic_player_windows_v${{ steps.get_version.outputs.version }}.zip`
+            
+            ### Installation
+            
+            **Android:**
+            1. Download `app-release.apk`
+            2. Enable "Install from Unknown Sources" in Settings
+            3. Install the APK
+            
+            **Windows:**
+            1. Download and extract the ZIP file
+            2. Run `sonic_player.exe`
+            
+            ### Server Configuration
+            
+            On first launch, enter your Subsonic server details:
+            - Server URL
+            - Username
+            - Password
+          files: |
+            ./artifacts/android/app-debug.apk
+            ./artifacts/android/app-release.apk
+            ./artifacts/windows/*.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
