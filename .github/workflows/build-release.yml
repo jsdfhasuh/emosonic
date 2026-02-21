@@ -58,23 +58,50 @@ jobs:
             echo "No SONIC_SERVER_URL secret configured, skipping injection"
           fi
 
+      - name: Get version
+        id: get_version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=${{ github.event.inputs.version }}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
       - name: Build Android Debug APK
-        run: flutter build apk --debug
+        run: |
+          VERSION=${{ steps.get_version.outputs.version }}
+          BUILD_NUMBER=${{ github.event.inputs.build_number || '1' }}
+          flutter build apk --debug --build-name=$VERSION --build-number=$BUILD_NUMBER
 
       - name: Build Android Release APK
-        run: flutter build apk --release
+        run: |
+          VERSION=${{ steps.get_version.outputs.version }}
+          BUILD_NUMBER=${{ github.event.inputs.build_number || '1' }}
+          flutter build apk --release --build-name=$VERSION --build-number=$BUILD_NUMBER
+
+      - name: Rename Android Debug APK
+        run: |
+          VERSION=${{ steps.get_version.outputs.version }}
+          mv build/app/outputs/flutter-apk/app-debug.apk build/app/outputs/flutter-apk/emosonic_android_v${VERSION}_debug.apk
+
+      - name: Rename Android Release APK
+        run: |
+          VERSION=${{ steps.get_version.outputs.version }}
+          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/emosonic_android_v${VERSION}.apk
 
       - name: Upload Android Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: android-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          path: build/app/outputs/flutter-apk/emosonic_android_v*_debug.apk
 
       - name: Upload Android Release APK
         uses: actions/upload-artifact@v4
         with:
           name: android-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/emosonic_android_v*.apk
 
   # ============================================
   # Windows Build Job
@@ -112,10 +139,8 @@ jobs:
             Write-Host "No SONIC_SERVER_URL secret configured, skipping injection"
           }
 
-      - name: Build Windows Release
-        run: flutter build windows --release
-
-      - name: Package Windows EXE
+      - name: Get version
+        id: get_version
         shell: pwsh
         run: |
           $version = if ($env:GITHUB_REF -like 'refs/tags/v*') { 
@@ -123,7 +148,20 @@ jobs:
           } else { 
             $env:INPUT_VERSION 
           }
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Version: $version"
 
+      - name: Build Windows Release
+        shell: pwsh
+        run: |
+          $version = "${{ steps.get_version.outputs.version }}"
+          $buildNumber = if ($env:INPUT_BUILD_NUMBER) { $env:INPUT_BUILD_NUMBER } else { "1" }
+          flutter build windows --release --build-name=$version --build-number=$buildNumber
+
+      - name: Package Windows EXE
+        shell: pwsh
+        run: |
+          $version = "${{ steps.get_version.outputs.version }}"
           $buildDir = "build/windows/x64/runner/Release"
           $outputName = "emosonic_windows_v${version}"
 
@@ -189,14 +227,14 @@ jobs:
 
             ### Downloads
 
-            - **Android Debug APK**: `app-debug.apk` (for testing)
-            - **Android Release APK**: `app-release.apk` (recommended for daily use)
+            - **Android Debug APK**: `emosonic_android_v${{ steps.get_version.outputs.version }}_debug.apk` (for testing)
+            - **Android Release APK**: `emosonic_android_v${{ steps.get_version.outputs.version }}.apk` (recommended for daily use)
             - **Windows**: `emosonic_windows_v${{ steps.get_version.outputs.version }}.zip`
 
             ### Installation
 
             **Android:**
-            1. Download `app-release.apk`
+            1. Download `emosonic_android_v${{ steps.get_version.outputs.version }}.apk`
             2. Enable "Install from Unknown Sources" in Settings
             3. Install the APK
 
@@ -211,8 +249,8 @@ jobs:
             - Username
             - Password
           files: |
-            ./artifacts/android/app-debug.apk
-            ./artifacts/android/app-release.apk
+            ./artifacts/android/emosonic_android_v${{ steps.get_version.outputs.version }}_debug.apk
+            ./artifacts/android/emosonic_android_v${{ steps.get_version.outputs.version }}.apk
             ./artifacts/windows/*.zip
           draft: false
           prerelease: false
