@@ -3,20 +3,20 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release (e.g., 1.0.0)'
+        description: "Version to release (e.g., 1.0.0)"
         required: true
-        default: '1.0.0'
+        default: "1.0.0"
       build_number:
-        description: 'Build number'
+        description: "Build number"
         required: true
-        default: '1'
+        default: "1"
 
 env:
-  FLUTTER_VERSION: '3.29.0'
+  FLUTTER_VERSION: "3.41.2"
 
 jobs:
   # ============================================
@@ -31,14 +31,14 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: "temurin"
+          java-version: "17"
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: 'stable'
+          channel: "stable"
 
       - name: Get dependencies
         run: flutter pub get
@@ -86,7 +86,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: 'stable'
+          channel: "stable"
 
       - name: Get dependencies
         run: flutter pub get
@@ -117,13 +117,13 @@ jobs:
           } else { 
             $env:INPUT_VERSION 
           }
-          
+
           $buildDir = "build/windows/x64/runner/Release"
           $outputName = "emosonic_windows_v${version}"
-          
+
           # Create zip archive
           Compress-Archive -Path "$buildDir\*" -DestinationPath "${outputName}.zip" -Force
-          
+
           Write-Host "Windows build packaged as ${outputName}.zip"
 
       - name: Upload Windows Build
@@ -180,26 +180,26 @@ jobs:
           tag_name: v${{ steps.get_version.outputs.version }}
           body: |
             ## EmoSonic v${{ steps.get_version.outputs.version }}
-            
+
             ### Downloads
-            
+
             - **Android Debug APK**: `app-debug.apk` (for testing)
             - **Android Release APK**: `app-release.apk` (recommended for daily use)
             - **Windows**: `emosonic_windows_v${{ steps.get_version.outputs.version }}.zip`
-            
+
             ### Installation
-            
+
             **Android:**
             1. Download `app-release.apk`
             2. Enable "Install from Unknown Sources" in Settings
             3. Install the APK
-            
+
             **Windows:**
             1. Download and extract the ZIP file
             2. Run `emosonic.exe`
-            
+
             ### Server Configuration
-            
+
             On first launch, enter your Subsonic server details:
             - Server URL
             - Username
