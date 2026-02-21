@@ -32,7 +32,7 @@ class PlaybackModeControls extends ConsumerWidget {
             );
           },
           loading: () => const SizedBox.shrink(),
-          error: (_, _) => const SizedBox.shrink(),
+          error: (err, __) => const SizedBox.shrink(),
         ),
         
         // Loop mode button
@@ -83,7 +83,7 @@ class PlaybackModeControls extends ConsumerWidget {
             );
           },
           loading: () => const SizedBox.shrink(),
-          error: (_, _) => const SizedBox.shrink(),
+          error: (err, __) => const SizedBox.shrink(),
         ),
       ],
     );

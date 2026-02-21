@@ -175,7 +175,7 @@ class VolumeControl extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
+      error: (err, __) => const SizedBox.shrink(),
     );
   }
 }

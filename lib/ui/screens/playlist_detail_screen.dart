@@ -357,7 +357,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
         _logger.info('Playing song: ${song.title} from playlist');
       },
       loading: () {},
-      error: (_, _) {},
+      error: (err, __) {},
     );
   }
 
