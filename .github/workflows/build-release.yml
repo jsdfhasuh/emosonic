@@ -109,7 +109,7 @@ jobs:
           }
           
           $buildDir = "build/windows/x64/runner/Release"
-          $outputName = "sonic_player_windows_v${version}"
+          $outputName = "emosonic_windows_v${version}"
           
           # Create zip archive
           Compress-Archive -Path "$buildDir\*" -DestinationPath "${outputName}.zip" -Force
@@ -120,7 +120,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-release
-          path: sonic_player_windows_*.zip
+          path: emosonic_windows_*.zip
 
   # ============================================
   # Create Release
@@ -169,13 +169,13 @@ jobs:
           name: Release v${{ steps.get_version.outputs.version }}
           tag_name: v${{ steps.get_version.outputs.version }}
           body: |
-            ## Sonic Player v${{ steps.get_version.outputs.version }}
+            ## EmoSonic v${{ steps.get_version.outputs.version }}
             
             ### Downloads
             
             - **Android Debug APK**: `app-debug.apk` (for testing)
             - **Android Release APK**: `app-release.apk` (recommended for daily use)
-            - **Windows**: `sonic_player_windows_v${{ steps.get_version.outputs.version }}.zip`
+            - **Windows**: `emosonic_windows_v${{ steps.get_version.outputs.version }}.zip`
             
             ### Installation
             
@@ -186,7 +186,7 @@ jobs:
             
             **Windows:**
             1. Download and extract the ZIP file
-            2. Run `sonic_player.exe`
+            2. Run `emosonic.exe`
             
             ### Server Configuration
             

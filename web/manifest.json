@@ -1,6 +1,6 @@
 {
-    "name": "sonic_player",
-    "short_name": "sonic_player",
+    "name": "EmoSonic",
+    "short_name": "EmoSonic",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

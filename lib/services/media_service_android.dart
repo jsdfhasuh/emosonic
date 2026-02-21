@@ -31,7 +31,7 @@ class MediaServiceAndroid implements MediaService {
       _handler = await audio_service.AudioService.init(
         builder: () => app_audio.AudioHandler(_player),
         config: audio_service.AudioServiceConfig(
-          androidNotificationChannelId: 'com.example.sonic_player.channel.audio',
+          androidNotificationChannelId: 'com.example.emosonic.channel.audio',
           androidNotificationChannelName: 'Music Playback',
           androidNotificationOngoing: false,
           androidStopForegroundOnPause: true,

@@ -1,4 +1,4 @@
-# Sonic Player
+# EmoSonic
 
 A cross-platform Subsonic music player built with Flutter. Supports Android and Windows.
 
@@ -29,9 +29,9 @@ Download the latest release from [GitHub Releases](../../releases).
 
 ### Windows
 
-1. Download `sonic_player_windows_v*.zip` from the latest release
+1. Download `emosonic_windows_v*.zip` from the latest release
 2. Extract the ZIP file to your preferred location
-3. Run `sonic_player.exe`
+3. Run `emosonic.exe`
 4. Configure your Subsonic server on first launch
 
 ## Building from Source

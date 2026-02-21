@@ -50,7 +50,7 @@ class SubsonicApiClient {
   late final Dio _dio;
   ServerConfig? _config;
   static const String _apiVersion = '1.16.1';
-  static const String _clientId = 'sonic_player';
+  static const String _clientId = 'emosonic';
   final Logger _logger = Logger('SubsonicApiClient');
 
   SubsonicApiClient() {
