@@ -44,11 +44,16 @@ jobs:
         run: flutter pub get
 
       - name: Inject server URL (if configured)
-        if: ${{ secrets.SONIC_SERVER_URL != '' }}
+        env:
+          SONIC_SERVER_URL: ${{ secrets.SONIC_SERVER_URL }}
         run: |
-          sed -i "s|final _urlController = TextEditingController();|final _urlController = TextEditingController(text: '${{ secrets.SONIC_SERVER_URL }}');|g" \
-            lib/ui/screens/server_config_screen.dart
-          echo "Server URL injected successfully"
+          if [ -n "$SONIC_SERVER_URL" ]; then
+            sed -i "s|final _urlController = TextEditingController();|final _urlController = TextEditingController(text: '$SONIC_SERVER_URL');|g" \
+              lib/ui/screens/server_config_screen.dart
+            echo "Server URL injected successfully"
+          else
+            echo "No SONIC_SERVER_URL secret configured, skipping injection"
+          fi
 
       - name: Build Android Debug APK
         run: flutter build apk --debug
@@ -87,14 +92,19 @@ jobs:
         run: flutter pub get
 
       - name: Inject server URL (if configured)
-        if: ${{ secrets.SONIC_SERVER_URL != '' }}
+        env:
+          SONIC_SERVER_URL: ${{ secrets.SONIC_SERVER_URL }}
         shell: pwsh
         run: |
-          (Get-Content lib/ui/screens/server_config_screen.dart) -replace \
-            "final _urlController = TextEditingController();", \
-            "final _urlController = TextEditingController(text: '${{ secrets.SONIC_SERVER_URL }}');" | \
-            Set-Content lib/ui/screens/server_config_screen.dart
-          Write-Host "Server URL injected successfully"
+          if ($env:SONIC_SERVER_URL) {
+            (Get-Content lib/ui/screens/server_config_screen.dart) -replace `
+              "final _urlController = TextEditingController();", `
+              "final _urlController = TextEditingController(text: '$env:SONIC_SERVER_URL');" | `
+              Set-Content lib/ui/screens/server_config_screen.dart
+            Write-Host "Server URL injected successfully"
+          } else {
+            Write-Host "No SONIC_SERVER_URL secret configured, skipping injection"
+          }
 
       - name: Build Windows Release
         run: flutter build windows --release
