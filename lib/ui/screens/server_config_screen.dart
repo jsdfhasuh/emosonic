@@ -209,104 +209,108 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.music_note,
-                size: 80,
-                color: Colors.deepPurple,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.music_note,
+                    size: 80,
+                    color: Colors.deepPurple,
+                  ),
+                  const SizedBox(height: 32),
+                  const Text(
+                    '连接到 Subsonic 服务器',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  TextFormField(
+                    controller: _urlController,
+                    decoration: const InputDecoration(
+                      labelText: '服务器地址',
+                      hintText: 'http://192.168.100.74:5000',
+                      prefixIcon: Icon(Icons.link),
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return '请输入服务器地址';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _usernameController,
+                    decoration: const InputDecoration(
+                      labelText: '用户名',
+                      prefixIcon: Icon(Icons.person),
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return '请输入用户名';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordController,
+                    decoration: const InputDecoration(
+                      labelText: '密码',
+                      prefixIcon: Icon(Icons.lock),
+                      border: OutlineInputBorder(),
+                    ),
+                    obscureText: true,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return '请输入密码';
+                      }
+                      return null;
+                    },
+                  ),
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ],
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _testConnection,
+                      child: _isLoading
+                          ? const CircularProgressIndicator()
+                          : const Text(
+                              '连接',
+                              style: TextStyle(fontSize: 18),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Author info
+                  Text(
+                    'Made with ❤️ by cjh & kimi & opencode',
+                    style: TextStyle(
+                      color: Colors.white.withAlpha(128),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 32),
-              const Text(
-                '连接到 Subsonic 服务器',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 32),
-              TextFormField(
-                controller: _urlController,
-                decoration: const InputDecoration(
-                  labelText: '服务器地址',
-                  hintText: 'http://192.168.100.74:5000',
-                  prefixIcon: Icon(Icons.link),
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '请输入服务器地址';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _usernameController,
-                decoration: const InputDecoration(
-                  labelText: '用户名',
-                  prefixIcon: Icon(Icons.person),
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '请输入用户名';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _passwordController,
-                decoration: const InputDecoration(
-                  labelText: '密码',
-                  prefixIcon: Icon(Icons.lock),
-                  border: OutlineInputBorder(),
-                ),
-                obscureText: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '请输入密码';
-                  }
-                  return null;
-                },
-              ),
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 16),
-                Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ],
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _testConnection,
-                  child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Text(
-                          '连接',
-                          style: TextStyle(fontSize: 18),
-                        ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Author info
-              Text(
-                'Made with ❤️ by cjh & kimi & opencode',
-                style: TextStyle(
-                  color: Colors.white.withAlpha(128),
-                  fontSize: 12,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
