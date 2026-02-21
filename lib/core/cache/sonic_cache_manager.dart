@@ -4,7 +4,6 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:synchronized/synchronized.dart';
 import '../utils/logger.dart';
 import 'cache_entry.dart';
@@ -46,30 +45,10 @@ class SonicCacheManager {
       if (_initialized) return;
 
       try {
-        // Request storage permission on Android
-        if (!kIsWeb && Platform.isAndroid) {
-          final status = await Permission.storage.request();
-          if (status.isDenied) {
-            _logger.warning('Storage permission denied, falling back to app directory');
-            // Fall back to app directory if permission denied
-            final appDir = await getApplicationSupportDirectory();
-            _cacheDirectory = Directory('${appDir.path}/$_cacheDirName');
-          } else {
-            // Use Downloads directory for image cache
-            final downloadsDir = await getDownloadsDirectory();
-            if (downloadsDir == null) {
-              throw Exception('Could not get downloads directory');
-            }
-            _cacheDirectory = Directory('${downloadsDir.path}/SonicPlayer/$_cacheDirName');
-          }
-        } else {
-          // Use Downloads directory for other platforms
-          final downloadsDir = await getDownloadsDirectory();
-          if (downloadsDir == null) {
-            throw Exception('Could not get downloads directory');
-          }
-          _cacheDirectory = Directory('${downloadsDir.path}/SonicPlayer/$_cacheDirName');
-        }
+        // Always use app-specific directory - no permission needed
+        final appDir = await getApplicationSupportDirectory();
+        _cacheDirectory = Directory('${appDir.path}/$_cacheDirName');
+        _logger.info('Using app-specific directory for cache: ${_cacheDirectory!.path}');
 
         if (!await _cacheDirectory!.exists()) {
           await _cacheDirectory!.create(recursive: true);
