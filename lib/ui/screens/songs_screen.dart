@@ -6,6 +6,7 @@ import '../../core/utils/logger.dart';
 import '../../data/models/models.dart';
 import '../../providers/providers.dart';
 import '../widgets/playlist_selection_dialog.dart';
+import '../widgets/star_button.dart';
 
 class SongsScreen extends ConsumerStatefulWidget {
   final Album album;
@@ -291,6 +292,8 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
               ],
             ),
           ),
+          // Star button
+          StarButton(songId: song.id),
           // More options
           IconButton(
             icon: const Icon(Icons.more_vert, size: 20, color: Colors.white54),
