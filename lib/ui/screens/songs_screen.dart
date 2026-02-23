@@ -6,6 +6,7 @@ import '../../core/utils/logger.dart';
 import '../../data/models/models.dart';
 import '../../providers/providers.dart';
 import '../widgets/playlist_selection_dialog.dart';
+import '../widgets/star_button.dart';
 
 class SongsScreen extends ConsumerStatefulWidget {
   final Album album;
@@ -114,7 +115,7 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
         // Song List
         SliverList(
           delegate: SliverChildBuilderDelegate(
-            (context, index) => _buildSongItem(context, ref, songs[index], index),
+            (context, index) => _buildSongItem(context, ref, songs, songs[index], index),
             childCount: songs.length,
           ),
         ),
@@ -206,7 +207,7 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
     );
   }
 
-  Widget _buildSongItem(BuildContext context, WidgetRef ref, Song song, int index) {
+  Widget _buildSongItem(BuildContext context, WidgetRef ref, List<Song> songs, Song song, int index) {
     final isCurrentSong = ref.watch(currentSongProvider)?.id == song.id;
     final isPlaying = ref.watch(isPlayingProvider);
 
@@ -291,17 +292,19 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
               ],
             ),
           ),
+          // Star button
+          StarButton(songId: song.id),
           // More options
           IconButton(
             icon: const Icon(Icons.more_vert, size: 20, color: Colors.white54),
-            onPressed: () => _showSongOptions(context, ref, song),
+            onPressed: () => _showSongOptions(context, ref, songs, song),
           ),
         ],
       ),
     );
   }
 
-  void _showSongOptions(BuildContext context, WidgetRef ref, Song song) {
+  void _showSongOptions(BuildContext context, WidgetRef ref, List<Song> songs, Song song) {
     final audioService = ref.read(audioPlayerServiceProvider);
     final isInQueue = audioService.queue.any((s) => s.id == song.id);
     
@@ -382,7 +385,7 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
               label: '马上播放',
               onTap: () {
                 Navigator.pop(context);
-                _playNow(context, ref, song);
+                _playNow(context, ref, songs, song);
               },
             ),
             _buildMenuItem(
@@ -454,28 +457,53 @@ Widget _buildMenuItem({
     );
   }
 
-  void _playNow(BuildContext context, WidgetRef ref, Song song) async {
+  void _playNow(BuildContext context, WidgetRef ref, List<Song> songs, Song song) async {
     try {
       final audioService = ref.read(audioPlayerServiceProvider);
-      final queueNotifier = ref.read(queueProvider.notifier);
       final container = ProviderScope.containerOf(context);
       
-      // Check if song is already in queue
-      final currentQueue = queueNotifier.queue;
-      final isInQueue = currentQueue.any((s) => s.id == song.id);
+      // [DEBUG] Get current queue state
+      final currentQueue = audioService.queue;
+      final currentIndex = audioService.currentIndex;
       
-      // If not in queue, add it to both provider and audio service
-      if (!isInQueue) {
-        queueNotifier.addToQueue(song);
-        await audioService.addToQueue(song);
+      // [DEBUG] Log queue state
+      _logger.info('[DEBUG_PLAY_NOW] Selected song: ${song.title} (ID: ${song.id})');
+      _logger.info('[DEBUG_PLAY_NOW] Current queue length: ${currentQueue.length}');
+      _logger.info('[DEBUG_PLAY_NOW] Current index: $currentIndex');
+      _logger.info('[DEBUG_PLAY_NOW] Current queue songs: ${currentQueue.map((s) => '${s.title}[${s.id}]').toList()}');
+      
+      List<Song> newQueue;
+      
+      if (currentQueue.isEmpty || currentIndex >= currentQueue.length) {
+        // Queue is empty or index out of bounds: just play the selected song
+        newQueue = [song];
+        _logger.info('[DEBUG_PLAY_NOW] Queue is empty, creating single song queue');
+      } else {
+        // Build new queue: [selected song] + [current song and all after]
+        final remainingSongs = currentQueue.sublist(currentIndex);
+        newQueue = [
+          song,  // New song at first position
+          ...remainingSongs,  // Current song and all after
+        ];
+        _logger.info('[DEBUG_PLAY_NOW] Remaining songs from current: ${remainingSongs.map((s) => '${s.title}[${s.id}]').toList()}');
       }
+      
+      // [DEBUG] Log new queue
+      _logger.info('[DEBUG_PLAY_NOW] New queue length: ${newQueue.length}');
+      _logger.info('[DEBUG_PLAY_NOW] New queue songs: ${newQueue.map((s) => '${s.title}[${s.id}]').toList()}');
       
       // Update state immediately for better UX
       container.read(currentSongProvider.notifier).state = song;
       container.read(isPlayingProvider.notifier).state = true;
       
-      // Play the song
-      await audioService.playSong(song);
+      // [DEBUG] Log before playQueue
+      _logger.info('[DEBUG_PLAY_NOW] Calling playQueue with startIndex: 0');
+      
+      // Play new queue starting from first song (the selected one)
+      await audioService.playQueue(newQueue, startIndex: 0);
+      
+      // [DEBUG] Log after playQueue
+      _logger.info('[DEBUG_PLAY_NOW] playQueue completed');
       
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

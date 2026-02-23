@@ -752,7 +752,8 @@ class _SongsView extends ConsumerWidget {
             icon: const Icon(Icons.play_arrow),
             onPressed: () async {
               final audioService = ref.read(audioPlayerServiceProvider);
-              await audioService.playSong(song);
+              // Play as single song queue instead of playSong
+              await audioService.playQueue([song], startIndex: 0);
               ref.read(currentSongProvider.notifier).state = song;
               ref.read(isPlayingProvider.notifier).state = true;
             },

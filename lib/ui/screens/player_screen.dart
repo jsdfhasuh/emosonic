@@ -5,6 +5,7 @@ import '../../providers/providers.dart';
 import '../widgets/playlist_drawer.dart';
 import '../widgets/volume_control.dart';
 import '../widgets/playback_mode_controls.dart';
+import '../widgets/star_button.dart';
 
 class PlayerScreen extends ConsumerWidget {
   const PlayerScreen({super.key});
@@ -14,6 +15,10 @@ class PlayerScreen extends ConsumerWidget {
     final currentSong = ref.watch(currentSongProvider);
     final isPlaying = ref.watch(isPlayingProvider);
     final audioService = ref.watch(audioPlayerServiceProvider);
+    // Use Selector to listen to albumId changes for cover update
+    final albumId = ref.watch(
+      currentSongProvider.select((song) => song?.albumId),
+    );
 
     if (currentSong == null) {
       return Scaffold(
@@ -84,6 +89,7 @@ class PlayerScreen extends ConsumerWidget {
                       ],
                     ),
                     child: ClipRRect(
+                      key: ValueKey(albumId),
                       borderRadius: BorderRadius.circular(16),
                       child: ImageCacheManager().getCachedImage(
                         imageUrl: currentSong.coverArt != null
@@ -111,15 +117,23 @@ class PlayerScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        currentSong.title,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              currentSong.title,
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          StarButton(songId: currentSong.id, size: 28),
+                        ],
                       ),
                       const SizedBox(height: 6),
                       Text(

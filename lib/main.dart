@@ -16,6 +16,7 @@ import 'ui/screens/songs_screen.dart';
 import 'ui/screens/genre_detail_screen.dart';
 import 'ui/screens/playlist_detail_screen.dart';
 import 'ui/screens/search_results_screen.dart';
+import 'ui/screens/starred_songs_screen.dart';
 import 'ui/widgets/mini_player.dart';
 import 'providers/providers.dart';
 import 'core/utils/logger.dart';
@@ -267,6 +268,11 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
                     label: '音乐库',
                   ),
                   BottomNavigationBarItem(
+                    icon: Icon(Icons.favorite_outline),
+                    activeIcon: Icon(Icons.favorite),
+                    label: '收藏',
+                  ),
+                  BottomNavigationBarItem(
                     icon: Icon(Icons.play_circle_outline),
                     activeIcon: Icon(Icons.play_circle),
                     label: '播放',
@@ -296,6 +302,8 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
         return const DiscoveryScreen();
       case PageType.library:
         return const LibraryScreen();
+      case PageType.starred:
+        return const StarredSongsScreen();
       case PageType.player:
         return const PlayerScreen();
       case PageType.settings:
@@ -314,6 +322,7 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
             // Only recurse if it's a main page
             if (mainPage == PageType.discovery ||
                 mainPage == PageType.library ||
+                mainPage == PageType.starred ||
                 mainPage == PageType.player ||
                 mainPage == PageType.settings) {
               return _buildMainContent(mainPage, visited);
@@ -329,6 +338,7 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
     // Only show bottom navigation bar on main pages
     return page == PageType.discovery ||
         page == PageType.library ||
+        page == PageType.starred ||
         page == PageType.player ||
         page == PageType.settings;
   }
@@ -339,10 +349,12 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
         return 0;
       case PageType.library:
         return 1;
-      case PageType.player:
+      case PageType.starred:
         return 2;
-      case PageType.settings:
+      case PageType.player:
         return 3;
+      case PageType.settings:
+        return 4;
       default:
         return 0;
     }
@@ -357,9 +369,12 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
         notifier.switchToMainPage(PageType.library);
         break;
       case 2:
-        notifier.switchToMainPage(PageType.player);
+        notifier.switchToMainPage(PageType.starred);
         break;
       case 3:
+        notifier.switchToMainPage(PageType.player);
+        break;
+      case 4:
         notifier.switchToMainPage(PageType.settings);
         break;
     }

@@ -4,6 +4,56 @@ import '../../core/utils/image_cache_manager.dart';
 import '../../providers/providers.dart';
 import '../screens/player_screen.dart';
 import 'audio_waveform.dart';
+import 'auto_marquee_text.dart';
+import 'star_button.dart';
+
+/// Custom painter for circular progress ring
+class CircularProgressPainter extends CustomPainter {
+  final double progress;
+  final double strokeWidth;
+  final Color color;
+
+  CircularProgressPainter({
+    required this.progress,
+    required this.strokeWidth,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width - strokeWidth) / 2;
+
+    // Background ring
+    final bgPaint = Paint()
+      ..color = Colors.white.withAlpha(51)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+
+    canvas.drawCircle(center, radius, bgPaint);
+
+    // Progress ring
+    final progressPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    final sweepAngle = 2 * 3.14159 * progress;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -3.14159 / 2, // Start from top
+      sweepAngle,
+      false,
+      progressPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CircularProgressPainter oldDelegate) {
+    return oldDelegate.progress != progress;
+  }
+}
 
 class MiniPlayer extends ConsumerWidget {
   const MiniPlayer({super.key});
@@ -13,215 +63,219 @@ class MiniPlayer extends ConsumerWidget {
     final currentSong = ref.watch(currentSongProvider);
     final isPlaying = ref.watch(isPlayingProvider);
     final audioService = ref.watch(audioPlayerServiceProvider);
+    // Use Selector to listen to albumId changes for cover update
+    final albumId = ref.watch(
+      currentSongProvider.select((song) => song?.albumId),
+    );
 
     if (currentSong == null) {
       return const SizedBox.shrink();
     }
 
-    return Container(
-      margin: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withAlpha(242),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.white.withAlpha(26),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(77),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            // Navigate to full player screen
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const PlayerScreen(),
-                settings: const RouteSettings(name: '/player'),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+        final isWide = screenWidth >= 380; // Threshold for showing prev/next buttons
+
+        return Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B).withAlpha(242),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.white.withAlpha(26),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(77),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
-            );
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              children: [
-                // Cover Art
-                ClipRRect(
-                  key: ValueKey(currentSong.id), // Force rebuild when song changes
-                  borderRadius: BorderRadius.circular(8),
-                  child: ImageCacheManager().getCachedImage(
-                    imageUrl: currentSong.coverArt != null
-                        ? ref.read(apiClientProvider).getCoverArtUrl(currentSong.coverArt!, itemId: currentSong.albumId)
-                        : '',
-                    width: 48,
-                    height: 48,
-                    cacheKey: 'album_${currentSong.albumId}',
-                    placeholder: _buildPlaceholder(),
-                    errorWidget: _buildPlaceholder(),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PlayerScreen(),
+                    settings: const RouteSettings(name: '/player'),
                   ),
-                ),
-                const SizedBox(width: 12),
-                // Song Info with Progress
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        currentSong.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
+                );
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    // Circular cover with progress ring and center play button
+                    StreamBuilder<Duration>(
+                      stream: audioService.positionStream,
+                      builder: (context, snapshot) {
+                        final position = snapshot.data ?? Duration.zero;
+                        final duration = currentSong.duration != null
+                            ? Duration(seconds: currentSong.duration!)
+                            : Duration.zero;
+                        
+                        double progress = 0.0;
+                        if (duration.inMilliseconds > 0) {
+                          progress = position.inMilliseconds / duration.inMilliseconds;
+                          progress = progress.clamp(0.0, 1.0);
+                        }
+
+                        return SizedBox(
+                          width: 52,
+                          height: 52,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Progress ring
+                              CustomPaint(
+                                size: const Size(52, 52),
+                                painter: CircularProgressPainter(
+                                  progress: progress,
+                                  strokeWidth: 2,
+                                  color: const Color(0xFF6B8DD6),
+                                ),
+                              ),
+                              // Circular cover with ValueKey to force rebuild on album change
+                              ClipOval(
+                                key: ValueKey(albumId),
+                                child: ImageCacheManager().getCachedImage(
+                                  imageUrl: currentSong.coverArt != null
+                                      ? ref.read(apiClientProvider).getCoverArtUrl(
+                                          currentSong.coverArt!,
+                                          itemId: currentSong.albumId,
+                                        )
+                                      : '',
+                                  width: 48,
+                                  height: 48,
+                                  cacheKey: 'album_${currentSong.albumId}',
+                                  placeholder: _buildPlaceholder(),
+                                  errorWidget: _buildPlaceholder(),
+                                ),
+                              ),
+                              // Center play/pause button (transparent)
+                              Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () async {
+                                    if (isPlaying) {
+                                      await audioService.pause();
+                                    } else {
+                                      await audioService.play();
+                                    }
+                                  },
+                                  customBorder: const CircleBorder(),
+                                  child: Container(
+                                    width: 48,
+                                    height: 48,
+                                    alignment: Alignment.center,
+                                    child: Icon(
+                                      isPlaying ? Icons.pause : Icons.play_arrow,
+                                      size: 24,
+                                      color: Colors.white.withAlpha(204),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 12),
+                    // Song Info with marquee
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Expanded(
-                            child: Text(
-                              currentSong.artistName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                          // Title with auto marquee
+                          SizedBox(
+                            height: 20,
+                            child: AutoMarqueeText(
+                              text: currentSong.title,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              height: 20,
+                              velocity: 30.0,
+                              pauseAfterRound: const Duration(seconds: 1),
+                              blankSpace: 20.0,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          // Artist with auto marquee
+                          SizedBox(
+                            height: 18,
+                            child: AutoMarqueeText(
+                              text: currentSong.artistName,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.white.withAlpha(179),
                               ),
+                              height: 18,
+                              velocity: 30.0,
+                              pauseAfterRound: const Duration(seconds: 1),
+                              blankSpace: 20.0,
                             ),
-                          ),
-                          // Progress indicator
-                          StreamBuilder<Duration>(
-                            stream: audioService.positionStream,
-                            builder: (context, snapshot) {
-                              final position = snapshot.data ?? Duration.zero;
-                              final duration = currentSong.duration != null
-                                  ? Duration(seconds: currentSong.duration!)
-                                  : Duration.zero;
-                              return Text(
-                                '${_formatDuration(position)} / ${_formatDuration(duration)}',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.white.withAlpha(128),
-                                ),
-                              );
-                            },
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      // Progress bar
-                      StreamBuilder<Duration>(
-                        stream: audioService.positionStream,
-                        builder: (context, snapshot) {
-                          final position = snapshot.data ?? Duration.zero;
-                          final duration = currentSong.duration != null
-                              ? Duration(seconds: currentSong.duration!)
-                              : Duration.zero;
-                          
-                          // Validate to avoid NaN or Infinity
-                          final positionMs = position.inMilliseconds.toDouble();
-                          final durationMs = duration.inMilliseconds.toDouble();
-                          double progress = 0.0;
-                          
-                          if (durationMs.isFinite && durationMs > 0 && positionMs.isFinite) {
-                            progress = positionMs / durationMs;
-                          }
-                          
-                          return Container(
-                            height: 2,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(26),
-                              borderRadius: BorderRadius.circular(1),
+                    ),
+                    const SizedBox(width: 8),
+                    // Controls - Responsive based on screen width
+                    Container(
+                      width: isWide ? 140 : 48,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          if (isWide) ...[
+                            // Wide screen: prev, star, next
+                            IconButton(
+                              icon: const Icon(Icons.skip_previous, size: 22),
+                              onPressed: () async {
+                                final queue = audioService.queue;
+                                final currentIndex = audioService.currentIndex;
+                                if (currentIndex > 0) {
+                                  final prevSong = queue[currentIndex - 1];
+                                  ref.read(currentSongProvider.notifier).state = prevSong;
+                                }
+                                await audioService.playPrevious();
+                              },
                             ),
-                            child: FractionallySizedBox(
-                              alignment: Alignment.centerLeft,
-                              widthFactor: progress.clamp(0.0, 1.0),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF6B8DD6),
-                                  borderRadius: BorderRadius.circular(1),
-                                ),
-                              ),
+                            StarButton(songId: currentSong.id, size: 22),
+                            IconButton(
+                              icon: const Icon(Icons.skip_next, size: 22),
+                              onPressed: () async {
+                                final queue = audioService.queue;
+                                final currentIndex = audioService.currentIndex;
+                                if (currentIndex < queue.length - 1) {
+                                  final nextSong = queue[currentIndex + 1];
+                                  ref.read(currentSongProvider.notifier).state = nextSong;
+                                }
+                                await audioService.playNext();
+                              },
                             ),
-                          );
-                        },
+                          ] else ...[
+                            // Narrow screen: only star
+                            StarButton(songId: currentSong.id, size: 24),
+                          ],
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Controls
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.skip_previous, size: 24),
-                      onPressed: () async {
-                        // Get next song info first
-                        final queue = audioService.queue;
-                        final currentIndex = audioService.currentIndex;
-                        if (currentIndex > 0) {
-                          final prevSong = queue[currentIndex - 1];
-                          // Update state immediately
-                          ref.read(currentSongProvider.notifier).state = prevSong;
-                        }
-                        // Then play
-                        await audioService.playPrevious();
-                      },
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        isPlaying ? Icons.pause : Icons.play_arrow,
-                        size: 32,
-                        color: const Color(0xFF6B8DD6),
-                      ),
-                      onPressed: () async {
-                        if (isPlaying) {
-                          await audioService.pause();
-                          // Note: isPlayingProvider is now synced via onPlayingStateChanged callback
-                        } else {
-                          await audioService.play();
-                          // Note: isPlayingProvider is now synced via onPlayingStateChanged callback
-                        }
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.skip_next, size: 24),
-                      onPressed: () async {
-                        // Get next song info first
-                        final queue = audioService.queue;
-                        final currentIndex = audioService.currentIndex;
-                        if (currentIndex < queue.length - 1) {
-                          final nextSong = queue[currentIndex + 1];
-                          // Update state immediately
-                          ref.read(currentSongProvider.notifier).state = nextSong;
-                        }
-                        // Then play
-                        await audioService.playNext();
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.queue_music, size: 24),
-                      onPressed: () {
-                        _showPlaylistQueue(context, ref, audioService);
-                      },
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -231,102 +285,6 @@ class MiniPlayer extends ConsumerWidget {
       height: 48,
       color: const Color(0xFF2D3B4E),
       child: const Icon(Icons.music_note, color: Colors.white54),
-    );
-  }
-
-  String _formatDuration(Duration duration) {
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
-
-  void _showPlaylistQueue(BuildContext context, WidgetRef ref, audioService) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF1E293B),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) {
-        final queue = audioService.queue;
-        final currentSong = ref.watch(currentSongProvider);
-        
-        return Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(51),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                '播放队列',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: queue.length,
-                  itemBuilder: (context, index) {
-                    final song = queue[index];
-                    final isCurrent = currentSong?.id == song.id;
-                    
-                    return ListTile(
-                      leading: Text(
-                        '${index + 1}',
-                        style: TextStyle(
-                          color: isCurrent ? const Color(0xFF6B8DD6) : Colors.white54,
-                          fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
-                      title: Text(
-                        song.title,
-                        style: TextStyle(
-                          color: isCurrent ? const Color(0xFF6B8DD6) : Colors.white,
-                          fontWeight: isCurrent ? FontWeight.w600 : FontWeight.normal,
-                        ),
-                      ),
-                      subtitle: Text(
-                        song.artistName,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white.withAlpha(179),
-                        ),
-                      ),
-                      trailing: isCurrent
-                          ? const AudioWaveform(
-                              color: Color(0xFF6B8DD6),
-                              height: 20,
-                              width: 24,
-                              barCount: 4,
-                            )
-                          : null,
-                      onTap: () async {
-                        await audioService.playQueue(queue, startIndex: index);
-                        ref.read(currentSongProvider.notifier).state = song;
-                        // Note: isPlayingProvider is now synced via onPlayingStateChanged callback
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                        }
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

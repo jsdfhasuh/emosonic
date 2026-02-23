@@ -5,6 +5,7 @@ import '../data/models/models.dart';
 enum PageType {
   discovery, // Discovery page
   library, // Library page
+  starred, // Starred songs page
   player, // Player page
   settings, // Settings page
   album, // Album list page (artist detail)
@@ -99,6 +100,7 @@ class NavigationNotifier extends StateNotifier<NavigationState> {
   void switchToMainPage(PageType page) {
     if (page == PageType.discovery ||
         page == PageType.library ||
+        page == PageType.starred ||
         page == PageType.player ||
         page == PageType.settings) {
       state = NavigationState(currentPage: page);

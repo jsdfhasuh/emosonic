@@ -77,10 +77,13 @@ dependencies:
   
   # Permission handling for storage access
   permission_handler: ^11.3.0
-  
+
   # Window management and system tray for desktop
   window_manager: ^0.4.3
   tray_manager: ^0.2.3
+
+  # Marquee text for scrolling song info
+  marquee: ^2.2.3
 
 dev_dependencies:
   flutter_test:

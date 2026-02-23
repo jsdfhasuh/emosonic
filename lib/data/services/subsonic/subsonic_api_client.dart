@@ -629,4 +629,60 @@ class SubsonicApiClient {
       // Don't throw - scrobble failures shouldn't break playback
     }
   }
+
+  /// Get starred items (songs, albums, artists) using getStarred2
+  Future<Map<String, dynamic>> getStarred2({
+    int? offset,
+    int? limit,
+  }) async {
+    _logger.info('Fetching starred items');
+    final params = <String, dynamic>{};
+    if (offset != null) params['offset'] = offset;
+    if (limit != null) params['limit'] = limit;
+    
+    final response = await _get('getStarred2', params: params);
+    return response['starred2'] as Map<String, dynamic>;
+  }
+
+  /// Star (favorite) songs, albums, or artists
+  Future<void> star({
+    List<String>? songIds,
+    List<String>? albumIds,
+    List<String>? artistIds,
+  }) async {
+    final params = <String, dynamic>{};
+    if (songIds != null && songIds.isNotEmpty) {
+      params['id'] = songIds;
+    }
+    if (albumIds != null && albumIds.isNotEmpty) {
+      params['albumId'] = albumIds;
+    }
+    if (artistIds != null && artistIds.isNotEmpty) {
+      params['artistId'] = artistIds;
+    }
+    
+    _logger.info('Starring items: songs=${songIds?.length ?? 0}, albums=${albumIds?.length ?? 0}, artists=${artistIds?.length ?? 0}');
+    await _get('star', params: params);
+  }
+
+  /// Unstar (remove from favorites) songs, albums, or artists
+  Future<void> unstar({
+    List<String>? songIds,
+    List<String>? albumIds,
+    List<String>? artistIds,
+  }) async {
+    final params = <String, dynamic>{};
+    if (songIds != null && songIds.isNotEmpty) {
+      params['id'] = songIds;
+    }
+    if (albumIds != null && albumIds.isNotEmpty) {
+      params['albumId'] = albumIds;
+    }
+    if (artistIds != null && artistIds.isNotEmpty) {
+      params['artistId'] = artistIds;
+    }
+    
+    _logger.info('Unstarring items: songs=${songIds?.length ?? 0}, albums=${albumIds?.length ?? 0}, artists=${artistIds?.length ?? 0}');
+    await _get('unstar', params: params);
+  }
 }

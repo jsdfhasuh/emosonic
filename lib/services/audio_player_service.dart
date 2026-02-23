@@ -54,6 +54,9 @@ class AudioPlayerService {
   int _playQueueCallId = 0;
   int _lastPlayQueueCallId = 0;
 
+  // Flag to track completion state across the service
+  bool _hasTriggeredCompletion = false;
+
   AudioPlayerService(this._apiClient) {
     _logger.info('AudioPlayerService initialized');
     _mediaService = MediaServiceFactory.getService(_player);
@@ -99,7 +102,6 @@ class AudioPlayerService {
 
   void _setupPositionListener() {
     DateTime? _lastSeekTime;
-    bool _hasTriggeredCompletion = false;
 
     _positionSubscription = _player.positionStream.listen((position) {
       final duration = _player.duration;
@@ -186,7 +188,7 @@ class AudioPlayerService {
     _lastCompletionTime = now;
 
     _logger.info('Playback completed, checking for next song, currentIndex: $_currentIndex');
-    _logger.info('BEFORE auto-advance: position=${_player.position}, playing=${_player.playing}');
+    _logger.info('BEFORE auto-advance: position=${_player.position}, duration=${_player.duration}, playing=${_player.playing}');
     
     // Submit completed scrobble for current song
     if (_currentIndex >= 0 && _currentIndex < _queue.length) {
@@ -488,6 +490,12 @@ class AudioPlayerService {
     _lastPlayQueueCallId = callId;
     
     _logger.info('Playing queue with ${songs.length} songs, starting at index $startIndex');
+    
+    // Stop current playback and reset state to prevent old completion events
+    await _player.stop();
+    _hasTriggeredCompletion = false;
+    _lastCompletionTime = null;
+    
     _queue.clear();
     _queue.addAll(songs);
     _currentIndex = startIndex;
@@ -504,8 +512,13 @@ class AudioPlayerService {
     });
 
     if (_currentIndex < _queue.length) {
-      // Use ConcatenatingAudioSource for seamless playback
-      await _playQueueWithConcatenatingSource(startIndex, callId);
+      if (Platform.isWindows) {
+        // Windows: Use single song playback to avoid ConcatenatingAudioSource crashes
+        await _playSongWithSetAudioSource(_queue[_currentIndex]);
+      } else {
+        // Android: Use ConcatenatingAudioSource for seamless playback
+        await _playQueueWithConcatenatingSource(startIndex, callId);
+      }
 
       // Pre-cache entire queue in background
       _preCacheQueueAsync();
