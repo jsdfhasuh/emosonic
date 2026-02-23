@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+<<<<<<< HEAD
 import '../../core/utils/image_cache_manager.dart';
+=======
+>>>>>>> 9b98f38f03ce18f1c5af23b3c1a8f1058206373c
 import '../../data/models/song.dart';
 import '../../providers/providers.dart';
 import '../../providers/starred_songs_provider.dart';
@@ -44,6 +47,7 @@ class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
     await ref.read(starredSongsProvider.notifier).loadStarredSongs(refresh: true);
   }
 
+<<<<<<< HEAD
   void _playAll() {
     final state = ref.read(starredSongsProvider);
     if (state.songs.isNotEmpty) {
@@ -65,11 +69,20 @@ class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
     );
   }
 
+=======
+>>>>>>> 9b98f38f03ce18f1c5af23b3c1a8f1058206373c
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(starredSongsProvider);
 
     return Scaffold(
+<<<<<<< HEAD
+=======
+      appBar: AppBar(
+        title: const Text('我的收藏'),
+        centerTitle: true,
+      ),
+>>>>>>> 9b98f38f03ce18f1c5af23b3c1a8f1058206373c
       body: Column(
         children: [
           Expanded(
@@ -126,6 +139,7 @@ class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
       );
     }
 
+<<<<<<< HEAD
     return CustomScrollView(
       controller: _scrollController,
       slivers: [
@@ -249,6 +263,27 @@ class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
         size: 80,
         color: Colors.white30,
       ),
+=======
+    return ListView.builder(
+      controller: _scrollController,
+      itemCount: state.songs.length + (state.hasMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index >= state.songs.length) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        final song = state.songs[index];
+        return GestureDetector(
+          onTap: () => _playSong(song),
+          child: _buildSongItem(context, song, index),
+        );
+      },
+>>>>>>> 9b98f38f03ce18f1c5af23b3c1a8f1058206373c
     );
   }
 
@@ -313,4 +348,16 @@ class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
       ),
     );
   }
+<<<<<<< HEAD
+=======
+
+  void _playSong(Song song) {
+    final audioService = ref.read(audioPlayerServiceProvider);
+    final state = ref.read(starredSongsProvider);
+    audioService.playQueue(
+      state.songs,
+      startIndex: state.songs.indexOf(song),
+    );
+  }
+>>>>>>> 9b98f38f03ce18f1c5af23b3c1a8f1058206373c
 }

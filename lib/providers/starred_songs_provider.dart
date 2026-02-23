@@ -15,7 +15,10 @@ class StarredSongsState {
   final String? error;
   final int offset;
   final int limit;
+<<<<<<< HEAD
   final int? totalCount;
+=======
+>>>>>>> 9b98f38f03ce18f1c5af23b3c1a8f1058206373c
 
   const StarredSongsState({
     this.songs = const [],
@@ -24,7 +27,10 @@ class StarredSongsState {
     this.error,
     this.offset = 0,
     this.limit = 50,
+<<<<<<< HEAD
     this.totalCount,
+=======
+>>>>>>> 9b98f38f03ce18f1c5af23b3c1a8f1058206373c
   });
 
   StarredSongsState copyWith({
@@ -34,7 +40,10 @@ class StarredSongsState {
     String? error,
     int? offset,
     int? limit,
+<<<<<<< HEAD
     int? totalCount,
+=======
+>>>>>>> 9b98f38f03ce18f1c5af23b3c1a8f1058206373c
   }) {
     return StarredSongsState(
       songs: songs ?? this.songs,
@@ -43,7 +52,10 @@ class StarredSongsState {
       error: error,
       offset: offset ?? this.offset,
       limit: limit ?? this.limit,
+<<<<<<< HEAD
       totalCount: totalCount ?? this.totalCount,
+=======
+>>>>>>> 9b98f38f03ce18f1c5af23b3c1a8f1058206373c
     );
   }
 }
@@ -51,9 +63,14 @@ class StarredSongsState {
 /// Notifier for managing starred songs list
 class StarredSongsNotifier extends StateNotifier<StarredSongsState> {
   final SubsonicApiClient _apiClient;
+<<<<<<< HEAD
   final Ref _ref;
 
   StarredSongsNotifier(this._apiClient, this._ref) : super(const StarredSongsState());
+=======
+
+  StarredSongsNotifier(this._apiClient) : super(const StarredSongsState());
+>>>>>>> 9b98f38f03ce18f1c5af23b3c1a8f1058206373c
 
   /// Load starred songs (initial load or refresh)
   Future<void> loadStarredSongs({bool refresh = false}) async {
@@ -65,7 +82,10 @@ class StarredSongsNotifier extends StateNotifier<StarredSongsState> {
         songs: [],
         hasMore: true,
         error: null,
+<<<<<<< HEAD
         totalCount: null,
+=======
+>>>>>>> 9b98f38f03ce18f1c5af23b3c1a8f1058206373c
       );
     }
 
@@ -87,6 +107,7 @@ class StarredSongsNotifier extends StateNotifier<StarredSongsState> {
           ? songsList
           : [...state.songs, ...songsList];
 
+<<<<<<< HEAD
       // Update cache with all starred song IDs
       final songIds = allSongs.map((song) => song.id).toList();
       _ref.read(starredCacheProvider).updateStarredSongs(songIds);
@@ -101,6 +122,13 @@ class StarredSongsNotifier extends StateNotifier<StarredSongsState> {
         totalCount: response['song'] != null 
             ? (response['song'] as List).length + state.offset
             : allSongs.length,
+=======
+      state = state.copyWith(
+        songs: allSongs,
+        isLoading: false,
+        hasMore: songsList.length >= state.limit,
+        offset: state.offset + songsList.length,
+>>>>>>> 9b98f38f03ce18f1c5af23b3c1a8f1058206373c
       );
     } catch (e) {
       state = state.copyWith(
@@ -119,7 +147,11 @@ class StarredSongsNotifier extends StateNotifier<StarredSongsState> {
 
 /// Provider for starred songs list
 final starredSongsProvider = StateNotifierProvider<StarredSongsNotifier, StarredSongsState>(
+<<<<<<< HEAD
   (ref) => StarredSongsNotifier(ref.read(apiClientProvider), ref),
+=======
+  (ref) => StarredSongsNotifier(ref.read(apiClientProvider)),
+>>>>>>> 9b98f38f03ce18f1c5af23b3c1a8f1058206373c
 );
 
 /// Provider to check if a specific song is starred
@@ -147,9 +179,14 @@ final toggleStarProvider = Provider.family<Future<void> Function(), String>(
           cache.addStarred(songId);
         }
 
+<<<<<<< HEAD
         // Only refresh the specific song's starred status
         // Don't invalidate the whole list to avoid blank page
         ref.refresh(isSongStarredProvider(songId));
+=======
+        // Invalidate starred songs provider to refresh list
+        ref.invalidate(starredSongsProvider);
+>>>>>>> 9b98f38f03ce18f1c5af23b3c1a8f1058206373c
       } catch (e) {
         rethrow;
       }
