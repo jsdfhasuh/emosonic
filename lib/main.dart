@@ -233,6 +233,16 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
             Logger('Main').error('Failed to restore playback speed: $e');
           }
         }
+
+        // Apply saved shuffle mode
+        final savedShuffleMode = container.read(shuffleModeSettingProvider);
+        if (savedShuffleMode) {
+          try {
+            await audioService.setShuffleModeEnabled(true);
+          } catch (e) {
+            Logger('Main').error('Failed to restore shuffle mode: $e');
+          }
+        }
       } else {
         Logger('Main').info('No playback state to restore or restore failed');
       }
