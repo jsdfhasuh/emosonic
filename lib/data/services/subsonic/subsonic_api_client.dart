@@ -670,12 +670,13 @@ class SubsonicApiClient {
       throw Exception('Server config not set');
     }
 
-    final params = <String, dynamic>{
-      'artist': artist,
-      'title': title,
-    };
+    final params = <String, dynamic>{};
     if (id != null && id.isNotEmpty) {
       params['id'] = id;
+    } else {
+      // Fallback to artist+title if no id
+      params['artist'] = artist;
+      params['title'] = title;
     }
 
     _logger.debug('Fetching lyrics: artist=$artist, title=$title, id=$id');
