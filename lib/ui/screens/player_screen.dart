@@ -47,7 +47,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('正在播放'),
+        title: MediaQuery.of(context).size.width >= 400
+            ? const Text('正在播放')
+            : null,
         actions: [
           const PlaybackModeControls(),
           IconButton(
