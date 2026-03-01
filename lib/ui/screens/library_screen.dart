@@ -114,12 +114,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
               _showSearchDialog(context, ref);
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              _showSettingsDialog(context, ref);
-            },
-          ),
           // Show create playlist button when on playlists tab (index 4)
           if (_tabController.index == 4)
             IconButton(
@@ -203,29 +197,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           ],
         );
       },
-    );
-  }
-
-  void _showSettingsDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('设置'),
-        content: const Text('确定要退出当前服务器连接吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () {
-              ref.read(serverConfigsProvider.notifier).clearAllConfigs();
-              Navigator.pop(context);
-            },
-            child: const Text('退出'),
-          ),
-        ],
-      ),
     );
   }
 
