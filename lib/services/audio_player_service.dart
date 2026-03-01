@@ -969,11 +969,16 @@ class AudioPlayerService {
 
   bool get shuffleModeEnabled => _player.shuffleModeEnabled;
 
-  // Playback speed control
+  /// Set playback speed (0.5x to 2.0x)
   Future<void> setSpeed(double speed) async {
-    final clampedSpeed = speed.clamp(0.5, 2.0);
-    _logger.debug('Setting playback speed to: $clampedSpeed');
-    await _player.setSpeed(clampedSpeed);
+    try {
+      final clampedSpeed = speed.clamp(0.5, 2.0);
+      _logger.debug('Setting playback speed to: $clampedSpeed');
+      await _player.setSpeed(clampedSpeed);
+    } catch (e) {
+      _logger.error('Error setting playback speed: $e');
+      rethrow;
+    }
   }
 
   Stream<double> get speedStream => _player.speedStream;
