@@ -12,7 +12,9 @@ void showPlayerMoreMenu(BuildContext context, WidgetRef ref, {bool showVolumeEnt
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
     builder: (context) {
-      return _PlayerMoreMenuContent(showVolumeEntry: showVolumeEntry);
+      return SafeArea(
+        child: _PlayerMoreMenuContent(showVolumeEntry: showVolumeEntry),
+      );
     },
   );
 }
@@ -114,75 +116,78 @@ class _PlayerMoreMenuContent extends ConsumerWidget {
 
   /// Open the existing VolumeControl bottom sheet.
   void _showVolumeBottomSheet(BuildContext context, WidgetRef ref) {
-    final audioService = ref.read(audioPlayerServiceProvider);
-    final volume = audioService.currentVolume;
+    final volumeAsync = ref.watch(volumeProvider);
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF1E293B),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Container(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(51),
-                      borderRadius: BorderRadius.circular(2),
+    volumeAsync.when(
+      data: (volume) {
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: const Color(0xFF1E293B),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          builder: (context) {
+            return SafeArea(
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(51),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    '音量调节',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 24),
-                  StreamBuilder<double>(
-                    stream: audioService.volumeStream,
-                    initialData: volume,
-                    builder: (context, snapshot) {
-                      final v = snapshot.data ?? volume;
-                      return Column(
-                        children: [
-                          Text(
-                            '${(v * 100).toInt()}%',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF6B8DD6),
+                    const SizedBox(height: 24),
+                    const Text(
+                      '音量调节',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 24),
+                    StreamBuilder<double>(
+                      stream: ref.read(audioPlayerServiceProvider).volumeStream,
+                      initialData: volume,
+                      builder: (context, snapshot) {
+                        final v = snapshot.data ?? volume;
+                        return Column(
+                          children: [
+                            Text(
+                              '${(v * 100).toInt()}%',
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF6B8DD6),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          Slider(
-                            value: v,
-                            min: 0,
-                            max: 1,
-                            divisions: 100,
-                            activeColor: const Color(0xFF6B8DD6),
-                            inactiveColor: Colors.white.withAlpha(26),
-                            onChanged: (value) {
-                              audioService.setVolume(value);
-                            },
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                ],
+                            const SizedBox(height: 16),
+                            Slider(
+                              value: v,
+                              min: 0,
+                              max: 1,
+                              divisions: 100,
+                              activeColor: const Color(0xFF6B8DD6),
+                              inactiveColor: Colors.white.withAlpha(26),
+                              onChanged: (value) {
+                                ref.read(audioPlayerServiceProvider).setVolume(value);
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             );
           },
         );
       },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 
