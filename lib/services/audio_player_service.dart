@@ -969,6 +969,17 @@ class AudioPlayerService {
 
   bool get shuffleModeEnabled => _player.shuffleModeEnabled;
 
+  // Playback speed control
+  Future<void> setSpeed(double speed) async {
+    final clampedSpeed = speed.clamp(0.5, 2.0);
+    _logger.debug('Setting playback speed to: $clampedSpeed');
+    await _player.setSpeed(clampedSpeed);
+  }
+
+  Stream<double> get speedStream => _player.speedStream;
+
+  double get currentSpeed => _player.speed;
+
   // Clear queue but keep current song
   Future<void> clearQueueExceptCurrent() async {
     _logger.info('Clearing queue except current song');
