@@ -6,12 +6,18 @@ import '../widgets/playlist_drawer.dart';
 import '../widgets/volume_control.dart';
 import '../widgets/playback_mode_controls.dart';
 import '../widgets/star_button.dart';
+import '../widgets/player_more_menu.dart';
 
-class PlayerScreen extends ConsumerWidget {
+class PlayerScreen extends ConsumerStatefulWidget {
   const PlayerScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PlayerScreen> createState() => _PlayerScreenState();
+}
+
+class _PlayerScreenState extends ConsumerState<PlayerScreen> {
+  @override
+  Widget build(BuildContext context) {
     final currentSong = ref.watch(currentSongProvider);
     final isPlaying = ref.watch(isPlayingProvider);
     final audioService = ref.watch(audioPlayerServiceProvider);
@@ -46,6 +52,15 @@ class PlayerScreen extends ConsumerWidget {
         title: const Text('正在播放'),
         actions: [
           const PlaybackModeControls(),
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: () {
+              // Check if narrow screen for volume entry
+              final screenWidth = MediaQuery.of(context).size.width;
+              final isNarrow = screenWidth < 400;
+              showPlayerMoreMenu(context, ref, showVolumeEntry: isNarrow);
+            },
+          ),
           Builder(
             builder: (context) => IconButton(
               icon: const Icon(Icons.queue_music),
