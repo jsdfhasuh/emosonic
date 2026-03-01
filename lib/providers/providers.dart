@@ -10,6 +10,8 @@ import '../data/models/models.dart';
 import '../data/models/search_result.dart';
 import '../data/services/subsonic/subsonic_api_client.dart' show AlbumListType, SubsonicApiClient;
 import '../services/audio_player_service.dart';
+import '../services/lyrics_service.dart';
+import '../data/models/lyric_line.dart';
 
 // Export navigation provider
 export 'navigation_provider.dart';
@@ -648,3 +650,18 @@ class DesktopNavExpandedNotifier extends StateNotifier<bool> {
     state = expanded;
   }
 }
+
+// Lyrics Service Provider
+final lyricsServiceProvider = Provider<LyricsService>((ref) {
+  final apiClient = ref.watch(apiClientProvider);
+  return LyricsService(apiClient);
+});
+
+// Lyrics Provider - fetches lyrics for a specific song
+final lyricsProvider = FutureProvider.family<List<LyricLine>, Song>((ref, song) async {
+  final lyricsService = ref.watch(lyricsServiceProvider);
+  return lyricsService.getLyricsForSong(song);
+});
+
+// Current lyric index provider - tracks which line is currently playing
+final currentLyricIndexProvider = StateProvider<int>((ref) => 0);
