@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/utils/snackbar_utils.dart';
 import '../../providers/starred_songs_provider.dart';
 
 /// Star button widget for toggling favorite status
@@ -28,20 +29,17 @@ class StarButton extends ConsumerWidget {
         try {
           await toggleStar();
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(isStarred ? '已取消收藏' : '已添加到收藏'),
-                duration: const Duration(seconds: 1),
-              ),
+            showTopSnackBar(
+              context,
+              message: isStarred ? '已取消收藏' : '已添加到收藏',
             );
           }
         } catch (e) {
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('操作失败: $e'),
-                backgroundColor: Colors.red,
-              ),
+            showTopSnackBar(
+              context,
+              message: '操作失败: $e',
+              backgroundColor: Colors.red,
             );
           }
         }

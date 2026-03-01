@@ -47,6 +47,8 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
 
     try {
       final config = ServerConfig(
+        id: '',
+        name: '主服务器',
         url: url,
         username: username,
         password: password,
@@ -63,7 +65,7 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
 
       if (isConnected) {
         _logger.info('Connection successful, saving config...');
-        await ref.read(serverConfigProvider.notifier).saveConfig(config);
+        await ref.read(serverConfigsProvider.notifier).addServer(config);
         _logger.info('Config saved successfully');
       } else {
         _logger.error('Ping returned false - server rejected connection');

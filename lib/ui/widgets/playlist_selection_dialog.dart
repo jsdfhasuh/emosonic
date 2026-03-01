@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/utils/snackbar_utils.dart';
 import '../../data/models/models.dart';
 import '../../providers/providers.dart';
 
@@ -42,15 +43,11 @@ class _PlaylistSelectionDialogState extends ConsumerState<PlaylistSelectionDialo
       
       if (mounted) {
         Navigator.of(context).pop(playlist.id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('已添加到歌单 "${playlist.name}"')),
-        );
+        showTopSnackBar(context, message: '已添加到歌单 "${playlist.name}"');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('添加失败: $e')),
-        );
+        showTopSnackBar(context, message: '添加失败: $e');
       }
     } finally {
       if (mounted) {
@@ -62,9 +59,7 @@ class _PlaylistSelectionDialogState extends ConsumerState<PlaylistSelectionDialo
   Future<void> _createAndAddToNewPlaylist() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入歌单名称')),
-      );
+      showTopSnackBar(context, message: '请输入歌单名称');
       return;
     }
     
@@ -82,15 +77,11 @@ class _PlaylistSelectionDialogState extends ConsumerState<PlaylistSelectionDialo
       
       if (mounted) {
         Navigator.of(context).pop(playlistId);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('已创建歌单 "$name" 并添加歌曲')),
-        );
+        showTopSnackBar(context, message: '已创建歌单 "$name" 并添加歌曲');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('创建失败: $e')),
-        );
+        showTopSnackBar(context, message: '创建失败: $e');
       }
     } finally {
       if (mounted) {

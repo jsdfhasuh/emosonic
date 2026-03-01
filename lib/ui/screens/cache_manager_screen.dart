@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/cache/audio_cache_manager.dart';
+import '../../core/utils/snackbar_utils.dart';
 import '../../providers/providers.dart';
 
 class CacheManagerScreen extends ConsumerStatefulWidget {
@@ -44,9 +45,7 @@ class _CacheManagerScreenState extends ConsumerState<CacheManagerScreen> {
         _isLoading = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('加载缓存信息失败: $e')),
-        );
+        showTopSnackBar(context, message: '加载缓存信息失败: $e');
       }
     }
   }
@@ -56,13 +55,9 @@ class _CacheManagerScreenState extends ConsumerState<CacheManagerScreen> {
       final audioService = ref.read(audioPlayerServiceProvider);
       // TODO: 需要从缓存信息中获取完整的 Song 对象
       // 暂时显示提示
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('播放缓存歌曲: ${song.fileName}')),
-      );
+      showTopSnackBar(context, message: '播放缓存歌曲: ${song.fileName}');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('播放失败: $e')),
-      );
+      showTopSnackBar(context, message: '播放失败: $e');
     }
   }
 
@@ -91,15 +86,11 @@ class _CacheManagerScreenState extends ConsumerState<CacheManagerScreen> {
         await cacheManager.removeFile(song.songId);
         await _loadCacheInfo();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('已删除缓存歌曲')),
-          );
+          showTopSnackBar(context, message: '已删除缓存歌曲');
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('删除失败: $e')),
-          );
+          showTopSnackBar(context, message: '删除失败: $e');
         }
       }
     }
@@ -130,15 +121,11 @@ class _CacheManagerScreenState extends ConsumerState<CacheManagerScreen> {
         await cacheManager.clearCache();
         await _loadCacheInfo();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('已清空所有缓存')),
-          );
+          showTopSnackBar(context, message: '已清空所有缓存');
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('清空失败: $e')),
-          );
+          showTopSnackBar(context, message: '清空失败: $e');
         }
       }
     }

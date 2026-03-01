@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/utils/image_cache_manager.dart';
 import '../../core/utils/logger.dart';
+import '../../core/utils/snackbar_utils.dart';
 import '../../data/models/models.dart';
 import '../../providers/providers.dart';
 import '../widgets/playlist_selection_dialog.dart';
@@ -506,16 +507,12 @@ Widget _buildMenuItem({
       _logger.info('[DEBUG_PLAY_NOW] playQueue completed');
       
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('正在播放: ${song.title}')),
-        );
+        showTopSnackBar(context, message: '正在播放: ${song.title}');
       }
     } catch (e) {
       _logger.error('Failed to play now: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('播放失败: $e')),
-        );
+        showTopSnackBar(context, message: '播放失败: $e');
       }
     }
   }
@@ -533,16 +530,12 @@ Widget _buildMenuItem({
       await audioService.insertNext(song);
       
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('将在下一首播放')),
-        );
+        showTopSnackBar(context, message: '将在下一首播放');
       }
     } catch (e) {
       _logger.error('Failed to play next: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('操作失败: $e')),
-        );
+        showTopSnackBar(context, message: '操作失败: $e');
       }
     }
   }
@@ -559,16 +552,12 @@ Widget _buildMenuItem({
       await audioService.addToQueue(song);
       
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已添加到队列')),
-        );
+        showTopSnackBar(context, message: '已添加到队列');
       }
     } catch (e) {
       _logger.error('Failed to add to queue: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('操作失败: $e')),
-        );
+        showTopSnackBar(context, message: '操作失败: $e');
       }
     }
   }
@@ -642,16 +631,12 @@ Widget _buildMenuItem({
       final audioService = ref.read(audioPlayerServiceProvider);
       await audioService.removeFromQueue(song);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已从队列移除')),
-        );
+        showTopSnackBar(context, message: '已从队列移除');
       }
     } catch (e) {
       _logger.error('Failed to remove from queue: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('操作失败: $e')),
-        );
+        showTopSnackBar(context, message: '操作失败: $e');
       }
     }
   }
@@ -716,9 +701,7 @@ Widget _buildMenuItem({
       container.read(currentSongProvider.notifier).state = null;
       container.read(isPlayingProvider.notifier).state = false;
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('播放失败: $e')),
-        );
+        showTopSnackBar(context, message: '播放失败: $e');
       }
     }
   }

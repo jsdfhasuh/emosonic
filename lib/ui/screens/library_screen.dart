@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/cache/audio_cache_manager.dart';
 import '../../core/utils/image_cache_manager.dart';
+import '../../core/utils/logger.dart';
+import '../../core/utils/snackbar_utils.dart';
 import '../../data/models/models.dart';
 import '../../data/services/subsonic/subsonic_api_client.dart';
 import '../../providers/providers.dart';
 import '../../providers/providers.dart' show offlineModeProvider, cachedSongsProvider;
+import '../widgets/playlist_selection_dialog.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
@@ -216,7 +219,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           ),
           TextButton(
             onPressed: () {
-              ref.read(serverConfigProvider.notifier).clearConfig();
+              ref.read(serverConfigsProvider.notifier).clearAllConfigs();
               Navigator.pop(context);
             },
             child: const Text('退出'),
@@ -265,9 +268,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
             onPressed: () {
               final name = nameController.text.trim();
               if (name.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('请输入歌单名称')),
-                );
+                showTopSnackBar(context, message: '请输入歌单名称');
                 return;
               }
               Navigator.of(context).pop(true);
@@ -290,15 +291,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       ref.invalidate(playlistsProvider);
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('歌单 "${nameController.text.trim()}" 创建成功')),
-        );
+        showTopSnackBar(context, message: '歌单 "${nameController.text.trim()}" 创建成功');
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('创建失败: $e')),
-        );
+        showTopSnackBar(context, message: '创建失败: $e');
       }
     }
   }
@@ -650,11 +647,18 @@ class _ArtistsView extends ConsumerWidget {
 }
 
 // 单曲视图
-class _SongsView extends ConsumerWidget {
+class _SongsView extends ConsumerStatefulWidget {
   const _SongsView();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_SongsView> createState() => _SongsViewState();
+}
+
+class _SongsViewState extends ConsumerState<_SongsView> {
+  final Logger _logger = Logger('_SongsView');
+
+  @override
+  Widget build(BuildContext context) {
     final songsAsync = ref.watch(randomSongsProvider);
     final isOffline = ref.watch(offlineModeProvider);
     final cachedSongsAsync = ref.watch(cachedSongsProvider);
@@ -748,18 +752,330 @@ class _SongsView extends ConsumerWidget {
           ),
           title: Text(song.title),
           subtitle: Text('${song.artistName} - ${song.albumName}'),
-          trailing: IconButton(
-            icon: const Icon(Icons.play_arrow),
-            onPressed: () async {
-              final audioService = ref.read(audioPlayerServiceProvider);
-              // Play as single song queue instead of playSong
-              await audioService.playQueue([song], startIndex: 0);
-              ref.read(currentSongProvider.notifier).state = song;
-              ref.read(isPlayingProvider.notifier).state = true;
-            },
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.play_arrow),
+                onPressed: () async {
+                  final audioService = ref.read(audioPlayerServiceProvider);
+                  await audioService.playQueue([song], startIndex: 0);
+                  ref.read(currentSongProvider.notifier).state = song;
+                  ref.read(isPlayingProvider.notifier).state = true;
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.more_vert),
+                onPressed: () => _showSongOptions(context, ref, song),
+              ),
+            ],
           ),
+          onLongPress: () => _showSongOptions(context, ref, song),
         );
       },
+    );
+  }
+
+  void _showSongOptions(BuildContext context, WidgetRef ref, Song song) {
+    final audioService = ref.read(audioPlayerServiceProvider);
+    final isInQueue = audioService.queue.any((s) => s.id == song.id);
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.7,
+      ),
+      builder: (context) => SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Song info header
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: ImageCacheManager().getCachedImage(
+                        imageUrl: song.coverArt != null
+                            ? ref.read(apiClientProvider).getCoverArtUrl(
+                                song.coverArt!,
+                                itemId: song.albumId,
+                              )
+                            : '',
+                        cacheKey: 'song_${song.id}',
+                        width: 48,
+                        height: 48,
+                        placeholder: Container(
+                          width: 48,
+                          height: 48,
+                          color: const Color(0xFF2D3B4E),
+                          child: const Icon(Icons.music_note, size: 24, color: Colors.white54),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            song.title,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            song.artistName,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.white.withAlpha(179),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              // Menu items
+              _buildMenuItem(
+                icon: Icons.play_circle_filled,
+                label: '马上播放',
+                onTap: () {
+                  Navigator.pop(context);
+                  _playNow(context, ref, song);
+                },
+              ),
+              _buildMenuItem(
+                icon: Icons.play_arrow,
+                label: '下一首播放',
+                onTap: () {
+                  Navigator.pop(context);
+                  _playNext(context, ref, song);
+                },
+              ),
+              _buildMenuItem(
+                icon: Icons.queue_music,
+                label: '添加到队列',
+                onTap: () {
+                  Navigator.pop(context);
+                  _addToQueue(context, ref, song);
+                },
+              ),
+              _buildMenuItem(
+                icon: Icons.playlist_add,
+                label: '添加到播放列表',
+                onTap: () {
+                  Navigator.pop(context);
+                  _showPlaylistSelection(context, ref, song);
+                },
+              ),
+              const Divider(height: 1),
+              _buildMenuItem(
+                icon: Icons.info_outline,
+                label: '查看歌曲信息',
+                onTap: () {
+                  Navigator.pop(context);
+                  _showSongInfo(context, song);
+                },
+              ),
+              if (isInQueue)
+                _buildMenuItem(
+                  icon: Icons.remove_circle_outline,
+                  label: '从队列移除',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _removeFromQueue(context, ref, song);
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuItem({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.white70),
+      title: Text(label),
+      onTap: onTap,
+    );
+  }
+
+  void _playNow(BuildContext context, WidgetRef ref, Song song) async {
+    try {
+      final audioService = ref.read(audioPlayerServiceProvider);
+      final container = ProviderScope.containerOf(context);
+      
+      container.read(currentSongProvider.notifier).state = song;
+      container.read(isPlayingProvider.notifier).state = true;
+      
+      await audioService.playQueue([song], startIndex: 0);
+      
+      if (context.mounted) {
+        showTopSnackBar(context, message: '正在播放: ${song.title}');
+      }
+    } catch (e) {
+      _logger.error('Failed to play now: $e');
+      if (context.mounted) {
+        showTopSnackBar(context, message: '播放失败: $e');
+      }
+    }
+  }
+
+  void _playNext(BuildContext context, WidgetRef ref, Song song) async {
+    try {
+      final audioService = ref.read(audioPlayerServiceProvider);
+      final queueNotifier = ref.read(queueProvider.notifier);
+      
+      final currentIndex = audioService.currentIndex;
+      queueNotifier.insertNext(song, currentIndex);
+      await audioService.insertNext(song);
+      
+      if (context.mounted) {
+        showTopSnackBar(context, message: '将在下一首播放');
+      }
+    } catch (e) {
+      _logger.error('Failed to play next: $e');
+      if (context.mounted) {
+        showTopSnackBar(context, message: '操作失败: $e');
+      }
+    }
+  }
+
+  void _addToQueue(BuildContext context, WidgetRef ref, Song song) async {
+    try {
+      final audioService = ref.read(audioPlayerServiceProvider);
+      final queueNotifier = ref.read(queueProvider.notifier);
+      
+      queueNotifier.addToQueue(song);
+      await audioService.addToQueue(song);
+      
+      if (context.mounted) {
+        showTopSnackBar(context, message: '已添加到队列');
+      }
+    } catch (e) {
+      _logger.error('Failed to add to queue: $e');
+      if (context.mounted) {
+        showTopSnackBar(context, message: '操作失败: $e');
+      }
+    }
+  }
+
+  void _showPlaylistSelection(BuildContext context, WidgetRef ref, Song song) async {
+    await showPlaylistSelectionDialog(context, song);
+  }
+
+  void _showSongInfo(BuildContext context, Song song) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text('歌曲信息'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildInfoRow('标题', song.title),
+            _buildInfoRow('艺术家', song.artistName),
+            _buildInfoRow('专辑', song.albumName),
+            _buildInfoRow('时长', _formatDuration(Duration(seconds: song.duration ?? 0))),
+            _buildInfoRow('格式', song.contentType ?? 'Unknown'),
+            _buildInfoRow('比特率', '${song.bitRate ?? 0} kbps'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                color: Colors.white.withAlpha(179),
+                fontSize: 14,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _removeFromQueue(BuildContext context, WidgetRef ref, Song song) async {
+    try {
+      final audioService = ref.read(audioPlayerServiceProvider);
+      await audioService.removeFromQueue(song);
+      if (context.mounted) {
+        showTopSnackBar(context, message: '已从队列移除');
+      }
+    } catch (e) {
+      _logger.error('Failed to remove from queue: $e');
+      if (context.mounted) {
+        showTopSnackBar(context, message: '操作失败: $e');
+      }
+    }
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildErrorWidget(BuildContext context, WidgetRef ref, Object error) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error, size: 64, color: Colors.red),
+          const SizedBox(height: 16),
+          Text('加载失败: $error'),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () => ref.refresh(randomSongsProvider),
+            child: const Text('重试'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -926,9 +1242,7 @@ class _CachedViewState extends ConsumerState<_CachedView> {
         _isLoading = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('加载缓存信息失败: $e')),
-        );
+        showTopSnackBar(context, message: '加载缓存信息失败: $e');
       }
     }
   }
@@ -946,15 +1260,11 @@ class _CachedViewState extends ConsumerState<_CachedView> {
       );
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('正在播放: ${song.displayTitle}')),
-        );
+        showTopSnackBar(context, message: '正在播放: ${song.displayTitle}');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('播放失败: $e')),
-        );
+        showTopSnackBar(context, message: '播放失败: $e');
       }
     }
   }
@@ -984,15 +1294,11 @@ class _CachedViewState extends ConsumerState<_CachedView> {
         await cacheManager.removeFile(song.songId);
         await _loadCacheInfo();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('已删除缓存歌曲')),
-          );
+          showTopSnackBar(context, message: '已删除缓存歌曲');
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('删除失败: $e')),
-          );
+          showTopSnackBar(context, message: '删除失败: $e');
         }
       }
     }
@@ -1023,15 +1329,11 @@ class _CachedViewState extends ConsumerState<_CachedView> {
         await cacheManager.clearCache();
         await _loadCacheInfo();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('已清空所有缓存')),
-          );
+          showTopSnackBar(context, message: '已清空所有缓存');
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('清空失败: $e')),
-          );
+          showTopSnackBar(context, message: '清空失败: $e');
         }
       }
     }

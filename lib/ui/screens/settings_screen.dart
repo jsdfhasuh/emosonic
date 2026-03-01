@@ -4,8 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/utils/image_cache_manager.dart';
 import '../../core/utils/logger.dart';
+import '../../core/utils/snackbar_utils.dart';
 import '../../core/cache/audio_cache_manager.dart';
 import '../../providers/providers.dart';
+import '../widgets/server_management_dialog.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -40,11 +42,9 @@ class SettingsScreen extends ConsumerWidget {
                 (value) async {
                   await ref.read(audioCacheEnabledProvider.notifier).setEnabled(value);
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(value ? '已开启边听边存' : '已关闭边听边存'),
-                        duration: const Duration(seconds: 2),
-                      ),
+                    showTopSnackBar(
+                      context,
+                      message: value ? '已开启边听边存' : '已关闭边听边存',
                     );
                   }
                 },
@@ -61,11 +61,9 @@ class SettingsScreen extends ConsumerWidget {
                 (value) async {
                   await ref.read(audioCachePlaybackEnabledProvider.notifier).setEnabled(value);
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(value ? '已开启缓存播放' : '已关闭缓存播放，将使用网络流'),
-                        duration: const Duration(seconds: 2),
-                      ),
+                    showTopSnackBar(
+                      context,
+                      message: value ? '已开启缓存播放' : '已关闭缓存播放，将使用网络流',
                     );
                   }
                 },
@@ -93,11 +91,9 @@ class SettingsScreen extends ConsumerWidget {
                 (value) async {
                   await ref.read(cacheCoverImageProvider.notifier).setEnabled(value);
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(value ? '已开启缓存封面' : '已关闭缓存封面'),
-                        duration: const Duration(seconds: 2),
-                      ),
+                    showTopSnackBar(
+                      context,
+                      message: value ? '已开启缓存封面' : '已关闭缓存封面',
                     );
                   }
                 },
@@ -211,10 +207,9 @@ class SettingsScreen extends ConsumerWidget {
                   await ref.read(imageCacheDisabledProvider.notifier).setDisabled(value);
                   ImageCacheManager().setCacheDisabled(value);
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(value ? '已禁用图片缓存' : '已启用图片缓存'),
-                      ),
+                    showTopSnackBar(
+                      context,
+                      message: value ? '已禁用图片缓存' : '已启用图片缓存',
                     );
                   }
                 },
@@ -230,17 +225,19 @@ class SettingsScreen extends ConsumerWidget {
           
           // Account
           _buildSectionHeader('账户'),
-          _buildListTile(
-            '多服务器配置',
-            '管理多个 Subsonic 服务器',
-            Icons.dns,
-            () {},
-          ),
-          _buildListTile(
-            '自定义 API 端点',
-            '高级设置',
-            Icons.api,
-            () {},
+          Consumer(
+            builder: (context, ref, child) {
+              final serverState = ref.watch(serverConfigsProvider);
+              final activeServer = serverState.activeServer;
+              final apiEndpoint = activeServer?.apiEndpoint ?? 'rest';
+              
+              return _buildListTile(
+                '自定义 API 端点',
+                '当前: $apiEndpoint',
+                Icons.api,
+                () => _showApiEndpointDialog(context, ref),
+              );
+            },
           ),
           _buildListTile(
             '查看日志',
@@ -321,72 +318,103 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Widget _buildServerStatusCard(BuildContext context, WidgetRef ref) {
-    final serverConfig = ref.watch(serverConfigProvider);
+    final serverState = ref.watch(serverConfigsProvider);
+    final activeServer = serverState.activeServer;
+    final serverCount = serverState.serverCount;
     
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1E293B), Color(0xFF2D3B4E)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFF6B8DD6).withAlpha(51),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => _showServerManagementDialog(context, ref),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1E293B), Color(0xFF2D3B4E)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFF6B8DD6).withAlpha(51),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF6B8DD6).withAlpha(26),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 12,
-                height: 12,
-                decoration: const BoxDecoration(
-                  color: Colors.green,
-                  shape: BoxShape.circle,
+              Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: activeServer?.isOnline ?? false ? Colors.green : Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    activeServer?.isOnline ?? false ? '已连接' : '未连接',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '$serverCount 个服务器',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withAlpha(179),
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, color: Colors.white54, size: 20),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                activeServer?.name ?? '未配置',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white.withAlpha(179),
                 ),
               ),
-              const SizedBox(width: 8),
-              const Text(
-                '已连接',
+              const SizedBox(height: 4),
+              Text(
+                activeServer?.url ?? '',
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                  color: Colors.white.withAlpha(128),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '用户: ${activeServer?.username ?? ''}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.white.withAlpha(128),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            '主线路',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.white.withAlpha(179),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            serverConfig?.url ?? '',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.white.withAlpha(128),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '用户: ${serverConfig?.username ?? ''}',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.white.withAlpha(128),
-            ),
-          ),
-        ],
+        ),
       ),
+    );
+  }
+
+  void _showServerManagementDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => const ServerManagementDialog(),
     );
   }
 
@@ -446,7 +474,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () {
-              ref.read(serverConfigProvider.notifier).clearConfig();
+              ref.read(serverConfigsProvider.notifier).clearAllConfigs();
               Navigator.pop(context);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -502,8 +530,9 @@ class SettingsScreen extends ConsumerWidget {
                           onPressed: () async {
                             await Clipboard.setData(ClipboardData(text: currentLog));
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('当前日志已复制')),
+                              showTopSnackBar(
+                                context,
+                                message: '当前日志已复制',
                               );
                             }
                           },
@@ -515,8 +544,9 @@ class SettingsScreen extends ConsumerWidget {
                           onPressed: () async {
                             await Clipboard.setData(ClipboardData(text: previousLog));
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('上次日志已复制')),
+                              showTopSnackBar(
+                                context,
+                                message: '上次日志已复制',
                               );
                             }
                           },
@@ -606,8 +636,9 @@ class SettingsScreen extends ConsumerWidget {
               await ImageCacheManager().clearCache();
               if (context.mounted) {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('图片缓存已清除')),
+                showTopSnackBar(
+                  context,
+                  message: '图片缓存已清除',
                 );
               }
             },
@@ -657,8 +688,9 @@ class SettingsScreen extends ConsumerWidget {
                 await Logger.setLogLevel(item['level'] as LogLevel);
                 if (context.mounted) {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('日志等级已设置为 ${item['name']}')),
+                  showTopSnackBar(
+                    context,
+                    message: '日志等级已设置为 ${item['name']}',
                   );
                 }
               },
@@ -709,11 +741,9 @@ class SettingsScreen extends ConsumerWidget {
                 await ref.read(audioCacheSizeProvider.notifier).setSize(size);
                 if (context.mounted) {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('缓存限额已设置为 ${(size / 1024).toStringAsFixed(1)} GB'),
-                      duration: const Duration(seconds: 2),
-                    ),
+                  showTopSnackBar(
+                    context,
+                    message: '缓存限额已设置为 ${(size / 1024).toStringAsFixed(1)} GB',
                   );
                 }
               },
@@ -768,11 +798,9 @@ class SettingsScreen extends ConsumerWidget {
                 await ref.read(windowCloseBehaviorProvider.notifier).setBehavior(option['value']!);
                 if (context.mounted) {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('关闭行为已设置为 ${option['label']}'),
-                      duration: const Duration(seconds: 2),
-                    ),
+                  showTopSnackBar(
+                    context,
+                    message: '关闭行为已设置为 ${option['label']}',
                   );
                 }
               },
@@ -849,16 +877,93 @@ class SettingsScreen extends ConsumerWidget {
                 ref.invalidate(audioCacheStatsProvider);
                 if (context.mounted) {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('缓存已清空'),
-                      duration: Duration(seconds: 2),
-                    ),
+                  showTopSnackBar(
+                    context,
+                    message: '缓存已清空',
                   );
                 }
               }
             },
             child: const Text('清空缓存', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showApiEndpointDialog(BuildContext context, WidgetRef ref) {
+    final serverState = ref.read(serverConfigsProvider);
+    final activeServer = serverState.activeServer;
+    
+    if (activeServer == null) {
+      showTopSnackBar(context, message: '请先配置服务器');
+      return;
+    }
+
+    final controller = TextEditingController(text: activeServer.apiEndpoint);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text('自定义 API 端点'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Subsonic API 端点路径',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                hintText: 'rest',
+                prefixText: '/',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '默认值为 "rest"，如果你的服务器使用不同的端点路径（如 "test"），请在此修改。',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.white.withAlpha(179),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final newEndpoint = controller.text.trim();
+              if (newEndpoint.isEmpty) {
+                showTopSnackBar(context, message: '端点不能为空');
+                return;
+              }
+
+              // Update server config with new endpoint
+              final updatedConfig = activeServer.copyWith(apiEndpoint: newEndpoint);
+              await ref.read(serverConfigsProvider.notifier).updateServer(activeServer.id, updatedConfig);
+              
+              // Update API client
+              final apiClient = ref.read(apiClientProvider);
+              apiClient.setConfig(updatedConfig);
+
+              if (context.mounted) {
+                Navigator.pop(context);
+                showTopSnackBar(context, message: 'API 端点已更新为: $newEndpoint');
+              }
+            },
+            child: const Text('保存'),
           ),
         ],
       ),

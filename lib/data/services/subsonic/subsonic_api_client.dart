@@ -102,8 +102,11 @@ class SubsonicApiClient {
     return digest.toString();
   }
 
+  String get _apiEndpoint => _config?.apiEndpoint ?? 'rest';
+
   Future<Map<String, dynamic>> _get(String endpoint, {Map<String, dynamic>? params}) async {
-    _logger.debug('API Request: GET /rest/$endpoint, params: $params');
+    final apiPath = _apiEndpoint;
+    _logger.debug('API Request: GET /$apiPath/$endpoint, params: $params');
     final authParams = _getAuthParams();
 
     // Handle List type params - expand them into multiple entries
@@ -121,7 +124,7 @@ class SubsonicApiClient {
 
     try {
       final response = await _dio.get(
-        '/rest/$endpoint',
+        '/$apiPath/$endpoint',
         queryParameters: authParams,
       );
 
@@ -245,7 +248,8 @@ class SubsonicApiClient {
     final queryString = authParams.entries
         .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value.toString())}')
         .join('&');
-    final url = '${_dio.options.baseUrl}/rest/stream?id=$songId&$queryString';
+    final apiPath = _apiEndpoint;
+    final url = '${_dio.options.baseUrl}/$apiPath/stream?id=$songId&$queryString';
     _logger.debug('Stream URL: $url');
     return url;
   }
@@ -283,7 +287,8 @@ class SubsonicApiClient {
 
     // Build URL with optional size parameter
     final sizeParam = size != null ? '&size=$size' : '';
-    final url = '${_dio.options.baseUrl}/rest/getCoverArt?id=$id$sizeParam&$queryString';
+    final apiPath = _apiEndpoint;
+    final url = '${_dio.options.baseUrl}/$apiPath/getCoverArt?id=$id$sizeParam&$queryString';
     _logger.debug('CoverArt URL: $url');
     return url;
   }
@@ -320,8 +325,9 @@ class SubsonicApiClient {
       _logger.debug('Checking cover art exists: id=$id');
 
       // 发送 HEAD 请求检查
+      final apiPath = _apiEndpoint;
       final response = await _dio.head(
-        '/rest/getCoverArt',
+        '/$apiPath/getCoverArt',
         queryParameters: {
           ...authParams,
           'id': id,
@@ -513,12 +519,23 @@ class SubsonicApiClient {
   }) async {
     final params = <String, dynamic>{
       'playlistId': playlistId,
-      'name': name,
-      'comment': comment,
-      'public': public?.toString(),
-      'songIdToAdd': songIdsToAdd,
-      'songIndexToRemove': songIndexesToRemove?.map((e) => e.toString()).toList(),
     };
+
+    if (name != null) {
+      params['name'] = name;
+    }
+    if (comment != null) {
+      params['comment'] = comment;
+    }
+    if (public != null) {
+      params['public'] = public.toString();
+    }
+    if (songIdsToAdd != null && songIdsToAdd.isNotEmpty) {
+      params['songIdToAdd'] = songIdsToAdd;
+    }
+    if (songIndexesToRemove != null && songIndexesToRemove.isNotEmpty) {
+      params['songIndexToRemove'] = songIndexesToRemove.map((e) => e.toString()).toList();
+    }
 
     final response = await _get('updatePlaylist', params: params);
 

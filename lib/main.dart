@@ -19,11 +19,12 @@ import 'ui/screens/search_results_screen.dart';
 import 'ui/screens/starred_songs_screen.dart';
 import 'ui/widgets/mini_player.dart';
 import 'providers/providers.dart';
+import 'providers/auto_resume_playback_provider.dart';
+import 'providers/app_theme_provider.dart';
 import 'core/utils/logger.dart';
 import 'core/utils/image_cache_manager.dart';
 import 'core/cache/audio_cache_manager.dart';
 import 'services/tray_service.dart';
-import 'services/audio_player_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -80,12 +81,43 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final serverConfig = ref.watch(serverConfigProvider);
+    final activeServer = ref.watch(serverConfigsProvider).activeServer;
+    final themeMode = ref.watch(appThemeModeProvider);
 
     return MaterialApp(
       title: 'Sonic Player',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
+      themeMode: themeMode.flutterThemeMode,
+      theme: ThemeData.light().copyWith(
+        scaffoldBackgroundColor: Colors.white,
+        colorScheme: ColorScheme.light(
+          primary: const Color(0xFF6B8DD6),
+          secondary: const Color(0xFF8B5CF6),
+          surface: Colors.grey[100]!,
+          onSurface: Colors.black87,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          iconTheme: IconThemeData(color: Colors.black87),
+          titleTextStyle: TextStyle(color: Colors.black87, fontSize: 20),
+        ),
+        bottomNavigationBarTheme: BottomNavigationBarThemeData(
+          backgroundColor: Colors.grey[100]!,
+          selectedItemColor: const Color(0xFF6B8DD6),
+          unselectedItemColor: Colors.black54,
+          type: BottomNavigationBarType.fixed,
+        ),
+        cardTheme: CardThemeData(
+          color: Colors.white,
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+      darkTheme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF0A1628),
         colorScheme: ColorScheme.dark(
           primary: const Color(0xFF6B8DD6),
@@ -112,7 +144,7 @@ class MyApp extends ConsumerWidget {
           ),
         ),
       ),
-      home: serverConfig == null
+      home: activeServer == null
           ? const ServerConfigScreen()
           : const MainScreen(),
     );
@@ -134,6 +166,52 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
       windowManager.addListener(this);
       _initTrayService();
     }
+    // Restore playback state if auto-resume is enabled
+    _restorePlaybackState();
+  }
+
+  Future<void> _restorePlaybackState() async {
+    Logger('Main').info('[DEBUG] _restorePlaybackState() started');
+
+    // Wait for provider to be initialized
+    Logger('Main').info('[DEBUG] Waiting for provider initialization...');
+    final notifier = ref.read(autoResumePlaybackProvider.notifier);
+    while (!notifier.isInitialized) {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+    Logger('Main').info('[DEBUG] Provider initialized');
+
+    Logger('Main').info('[DEBUG] Reading autoResumePlaybackProvider...');
+    final autoResumeEnabled = ref.read(autoResumePlaybackProvider);
+    Logger('Main').info('[DEBUG] autoResumePlaybackProvider value: $autoResumeEnabled');
+
+    if (!autoResumeEnabled) {
+      Logger('Main').info('[DEBUG] Auto resume playback is disabled, returning');
+      return;
+    }
+
+    Logger('Main').info('Auto resume playback is enabled, attempting to restore...');
+
+    try {
+      final audioService = ref.read(audioPlayerServiceProvider);
+      final restored = await audioService.restorePlaybackState();
+
+      if (restored) {
+        Logger('Main').info('Playback state restored successfully');
+        // Update currentSongProvider to refresh MiniPlayer
+        final currentSong = audioService.currentSong;
+        if (currentSong != null) {
+          Logger('Main').info('[DEBUG] Updating currentSongProvider with: ${currentSong.title}');
+          ref.read(currentSongProvider.notifier).state = currentSong;
+          Logger('Main').info('[DEBUG] currentSongProvider updated successfully');
+        }
+      } else {
+        Logger('Main').info('No playback state to restore or restore failed');
+      }
+    } catch (e, stackTrace) {
+      Logger('Main').error('[DEBUG] Exception in _restorePlaybackState: $e');
+      Logger('Main').error('[DEBUG] Stack trace: $stackTrace');
+    }
   }
 
   @override
@@ -154,6 +232,19 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
 
   @override
   void onWindowClose() async {
+    // Save playback state asynchronously without blocking
+    // This allows the app to close immediately while saving in background
+    try {
+      final audioService = ref.read(audioPlayerServiceProvider);
+      audioService.savePlaybackState().then((_) {
+        Logger('Main').info('Playback state saved before exit (async)');
+      }).catchError((e) {
+        Logger('Main').error('Failed to save playback state: $e');
+      });
+    } catch (e) {
+      Logger('Main').error('Failed to start playback state save: $e');
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final behavior = prefs.getString('window_close_behavior') ?? 'ask';
     

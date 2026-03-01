@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-<<<<<<< HEAD
 import '../../core/utils/image_cache_manager.dart';
-=======
->>>>>>> 9b98f38f03ce18f1c5af23b3c1a8f1058206373c
 import '../../data/models/song.dart';
 import '../../providers/providers.dart';
 import '../../providers/starred_songs_provider.dart';
@@ -18,36 +15,22 @@ class StarredSongsScreen extends ConsumerStatefulWidget {
 }
 
 class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
-  final ScrollController _scrollController = ScrollController();
-
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
-    // Initial load
-    Future.microtask(() {
+    // Initialize cache first, then load songs
+    Future.microtask(() async {
+      // Pre-load starred cache to ensure star buttons show correctly
+      await ref.read(initializeStarredCacheProvider.future);
+      // Then load the songs list (all at once, no pagination)
       ref.read(starredSongsProvider.notifier).loadStarredSongs(refresh: true);
     });
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      ref.read(starredSongsProvider.notifier).loadMore();
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
   }
 
   Future<void> _onRefresh() async {
     await ref.read(starredSongsProvider.notifier).loadStarredSongs(refresh: true);
   }
 
-<<<<<<< HEAD
   void _playAll() {
     final state = ref.read(starredSongsProvider);
     if (state.songs.isNotEmpty) {
@@ -69,20 +52,11 @@ class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
     );
   }
 
-=======
->>>>>>> 9b98f38f03ce18f1c5af23b3c1a8f1058206373c
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(starredSongsProvider);
 
     return Scaffold(
-<<<<<<< HEAD
-=======
-      appBar: AppBar(
-        title: const Text('我的收藏'),
-        centerTitle: true,
-      ),
->>>>>>> 9b98f38f03ce18f1c5af23b3c1a8f1058206373c
       body: Column(
         children: [
           Expanded(
@@ -139,37 +113,23 @@ class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
       );
     }
 
-<<<<<<< HEAD
     return CustomScrollView(
-      controller: _scrollController,
       slivers: [
         // Header with cover and play button
         SliverToBoxAdapter(
           child: _buildHeader(state),
         ),
-        // Song list
+        // Song list (no pagination)
         SliverList(
           delegate: SliverChildBuilderDelegate(
             (context, index) {
-              if (index >= state.songs.length) {
-                if (state.hasMore) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
-                }
-                return const SizedBox.shrink();
-              }
-
               final song = state.songs[index];
               return GestureDetector(
                 onTap: () => _playSong(song),
                 child: _buildSongItem(context, song, index),
               );
             },
-            childCount: state.songs.length + (state.hasMore ? 1 : 0),
+            childCount: state.songs.length,
           ),
         ),
         // Bottom padding for mini player
@@ -263,27 +223,6 @@ class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
         size: 80,
         color: Colors.white30,
       ),
-=======
-    return ListView.builder(
-      controller: _scrollController,
-      itemCount: state.songs.length + (state.hasMore ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index >= state.songs.length) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
-
-        final song = state.songs[index];
-        return GestureDetector(
-          onTap: () => _playSong(song),
-          child: _buildSongItem(context, song, index),
-        );
-      },
->>>>>>> 9b98f38f03ce18f1c5af23b3c1a8f1058206373c
     );
   }
 
@@ -348,16 +287,4 @@ class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
       ),
     );
   }
-<<<<<<< HEAD
-=======
-
-  void _playSong(Song song) {
-    final audioService = ref.read(audioPlayerServiceProvider);
-    final state = ref.read(starredSongsProvider);
-    audioService.playQueue(
-      state.songs,
-      startIndex: state.songs.indexOf(song),
-    );
-  }
->>>>>>> 9b98f38f03ce18f1c5af23b3c1a8f1058206373c
 }

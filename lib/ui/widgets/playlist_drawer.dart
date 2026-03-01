@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/utils/snackbar_utils.dart';
 import '../../providers/providers.dart';
 import 'audio_waveform.dart';
 
@@ -90,19 +91,14 @@ class _PlaylistDrawerState extends ConsumerState<PlaylistDrawer> {
 
                           if (context.mounted) {
                             Navigator.pop(context); // Close progress dialog
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('队列歌曲已缓存到本地'),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
+                            showTopSnackBar(context, message: '队列歌曲已缓存到本地');
                           }
                         },
                       ),
                     ),
-                  if (queue.isNotEmpty && queue.length > 1)
+                  if (queue.isNotEmpty)
                     Tooltip(
-                      message: '清空队列（保留当前歌曲）',
+                      message: '清空队列选项',
                       child: TextButton.icon(
                         icon: const Icon(Icons.clear_all, size: 20),
                         label: const Text('清空', style: TextStyle(fontSize: 12)),
@@ -110,26 +106,45 @@ class _PlaylistDrawerState extends ConsumerState<PlaylistDrawer> {
                           showDialog(
                             context: context,
                             builder: (context) => AlertDialog(
+                              backgroundColor: const Color(0xFF1E293B),
                               title: const Text('清空队列'),
-                              content: const Text('确定要清空播放队列吗？当前播放的歌曲将保留。'),
+                              content: const Text('请选择清空方式：'),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.pop(context),
                                   child: const Text('取消'),
                                 ),
+                                if (queue.length > 1)
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      // Clear queue but keep current song
+                                      audioService.clearQueueExceptCurrent();
+                                      // Also update queueProvider
+                                      final current = audioService.currentSong;
+                                      if (current != null) {
+                                        ref.read(queueProvider.notifier).setQueue([current]);
+                                      } else {
+                                        ref.read(queueProvider.notifier).clearQueue();
+                                      }
+                                      showTopSnackBar(context, message: '已清空队列（保留当前歌曲）');
+                                    },
+                                    child: const Text('保留当前'),
+                                  ),
                                 TextButton(
                                   onPressed: () {
                                     Navigator.pop(context);
-                                    audioService.clearQueueExceptCurrent();
-                                    // Also update queueProvider
-                                    final current = audioService.currentSong;
-                                    if (current != null) {
-                                      ref.read(queueProvider.notifier).setQueue([current]);
-                                    } else {
-                                      ref.read(queueProvider.notifier).clearQueue();
-                                    }
+                                    // Clear all songs and stop playback
+                                    audioService.clearQueue();
+                                    ref.read(queueProvider.notifier).clearQueue();
+                                    ref.read(currentSongProvider.notifier).state = null;
+                                    ref.read(isPlayingProvider.notifier).state = false;
+                                    showTopSnackBar(context, message: '已清空所有歌曲并停止播放');
                                   },
-                                  child: const Text('确定'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.red,
+                                  ),
+                                  child: const Text('清空所有'),
                                 ),
                               ],
                             ),

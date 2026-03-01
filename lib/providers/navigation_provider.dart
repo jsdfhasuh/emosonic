@@ -217,6 +217,12 @@ class NavigationNotifier extends StateNotifier<NavigationState> {
       final previousItem = state.pageStack.last;
       final newStack = state.pageStack.sublist(0, state.pageStack.length - 1);
 
+      // Restore searchQuery when returning to search results page
+      String? restoredSearchQuery;
+      if (previousItem.pageType == PageType.searchResults) {
+        restoredSearchQuery = state.searchQuery;
+      }
+
       state = NavigationState(
         currentPage: previousItem.pageType,
         pageStack: newStack,
@@ -226,8 +232,8 @@ class NavigationNotifier extends StateNotifier<NavigationState> {
         selectedAlbum: previousItem.selectedAlbum,
         selectedGenre: previousItem.selectedGenre,
         selectedPlaylist: previousItem.selectedPlaylist,
-        // Clear searchQuery when popping from search results
-        searchQuery: null,
+        // Restore searchQuery when returning to search results page
+        searchQuery: restoredSearchQuery,
       );
     }
   }

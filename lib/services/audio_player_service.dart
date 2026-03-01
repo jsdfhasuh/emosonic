@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:just_audio/just_audio.dart';
@@ -491,6 +492,18 @@ class AudioPlayerService {
     
     _logger.info('Playing queue with ${songs.length} songs, starting at index $startIndex');
     
+    // Check for empty queue
+    if (songs.isEmpty) {
+      _logger.warning('Cannot play empty queue');
+      return;
+    }
+    
+    // Validate startIndex
+    if (startIndex < 0 || startIndex >= songs.length) {
+      _logger.warning('Invalid startIndex: $startIndex, queue length: ${songs.length}, using 0');
+      startIndex = 0;
+    }
+    
     // Stop current playback and reset state to prevent old completion events
     await _player.stop();
     _hasTriggeredCompletion = false;
@@ -619,6 +632,7 @@ class AudioPlayerService {
 
   /// Create audio source for a song, preferring cache if available
   Future<AudioSource> _createAudioSourceForSong(Song song) async {
+    _logger.info('[DEBUG] Song meta: id=${song.id}, title=${song.title}, contentType=${song.contentType}, bitRate=${song.bitRate}, duration=${song.duration}');
     final cacheManager = AudioCacheManager();
     final cachedFilePath = await cacheManager.getCachedFilePath(song.id);
 
@@ -983,6 +997,25 @@ class AudioPlayerService {
     _currentIndex = -1;
     _queueChangeController.add(null);
     await _mediaService.updateQueue(_queue, _currentIndex);
+    // Stop playback when clearing queue
+    await stop();
+    // Clear saved playback state
+    await _clearSavedPlaybackState();
+  }
+
+  /// Clear saved playback state from SharedPreferences
+  Future<void> _clearSavedPlaybackState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('last_playback_queue');
+      await prefs.remove('last_playback_index');
+      await prefs.remove('last_playback_position');
+      await prefs.remove('last_playback_saved_at');
+      await prefs.remove('last_playback_songs_data');
+      _logger.info('Saved playback state cleared');
+    } catch (e) {
+      _logger.error('Failed to clear saved playback state: $e');
+    }
   }
 
   /// Pre-cache songs in the queue for offline playback
@@ -1167,6 +1200,140 @@ class AudioPlayerService {
     await _queueChangeController.close();
     await _mediaService.dispose();
     await _player.dispose();
+  }
+
+  /// Save current playback state for auto-resume
+  Future<void> savePlaybackState() async {
+    try {
+      if (_queue.isEmpty || _currentIndex < 0) {
+        _logger.info('[DEBUG] savePlaybackState: queue is empty or index < 0, skipping save');
+        return;
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      final queueIds = _queue.map((song) => song.id).toList();
+      final position = _player.position.inMilliseconds;
+
+      _logger.info('[DEBUG] savePlaybackState: Saving state...');
+      _logger.info('[DEBUG] savePlaybackState: queueIds=$queueIds');
+      _logger.info('[DEBUG] savePlaybackState: currentIndex=$_currentIndex');
+      _logger.info('[DEBUG] savePlaybackState: position=${position}ms');
+      _logger.info('[DEBUG] savePlaybackState: currentSong=${_queue[_currentIndex].title}');
+
+      await prefs.setStringList('last_playback_queue', queueIds);
+      await prefs.setInt('last_playback_index', _currentIndex);
+      await prefs.setInt('last_playback_position', position);
+      await prefs.setString('last_playback_saved_at', DateTime.now().toIso8601String());
+
+      // Also save full song data for restoration
+      final songsData = _queue.map((song) => song.toJson()).toList();
+      await prefs.setString('last_playback_songs_data', jsonEncode(songsData));
+
+      _logger.info('[DEBUG] savePlaybackState: State saved successfully');
+      _logger.info('Playback state saved: index=$_currentIndex, position=${position}ms, queue=${queueIds.length} songs');
+    } catch (e) {
+      _logger.error('[DEBUG] savePlaybackState: Failed to save: $e');
+      _logger.error('Failed to save playback state: $e');
+    }
+  }
+
+  /// Restore playback state from saved data
+  /// Returns true if state was restored successfully
+  Future<bool> restorePlaybackState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final queueIds = prefs.getStringList('last_playback_queue');
+
+      if (queueIds == null || queueIds.isEmpty) {
+        _logger.debug('No saved playback state found');
+        return false;
+      }
+
+      final currentIndex = prefs.getInt('last_playback_index') ?? 0;
+      final position = prefs.getInt('last_playback_position') ?? 0;
+
+      _logger.info('Restoring playback state: index=$currentIndex, position=${position}ms, queue=${queueIds.length} songs');
+
+      // Note: Subsonic API doesn't have a getSong endpoint
+      // We'll store the full song info in a separate key for restoration
+      // For now, we can only restore if we have the cached song data
+      final cachedSongsJson = prefs.getString('last_playback_songs_data');
+      if (cachedSongsJson == null) {
+        _logger.warning('No cached song data found for restoration');
+        return false;
+      }
+
+      try {
+        final List<dynamic> songsData = jsonDecode(cachedSongsJson);
+        final List<Song> restoredQueue = songsData
+            .map((json) => Song.fromJson(json))
+            .where((song) => queueIds.contains(song.id))
+            .toList();
+
+        if (restoredQueue.isEmpty) {
+          _logger.warning('No valid songs could be restored from cached data');
+          return false;
+        }
+
+        // Reorder to match original queue order
+        restoredQueue.sort((a, b) {
+          final indexA = queueIds.indexOf(a.id);
+          final indexB = queueIds.indexOf(b.id);
+          return indexA.compareTo(indexB);
+        });
+
+        // Set up the queue
+        _queue.clear();
+        _queue.addAll(restoredQueue);
+        _currentIndex = currentIndex.clamp(0, _queue.length - 1);
+
+        // Load the audio source but don't play yet
+        final currentSong = _queue[_currentIndex];
+        _logger.info('Restoring to song: ${currentSong.title} at position ${position}ms');
+
+        if (Platform.isWindows) {
+          // Windows: Use setAudioSource
+          final audioSource = await _createAudioSourceForSong(currentSong);
+          await _player.setAudioSource(audioSource);
+          await _player.seek(Duration(milliseconds: position));
+        } else {
+          // Android: Set up ConcatenatingAudioSource
+          await _playQueueWithConcatenatingSource(_currentIndex, ++_playQueueCallId);
+          await _player.seek(Duration(milliseconds: position), index: _currentIndex);
+        }
+
+        // Update UI state
+        _currentlyPlayingSongId = currentSong.id;
+        if (onSongChanged != null) {
+          onSongChanged!(currentSong);
+        }
+
+        // Update media metadata
+        await _updateMediaMetadataForCurrentSong();
+
+        _logger.info('Playback state restored successfully');
+        return true;
+      } catch (e) {
+        _logger.error('Failed to parse cached song data: $e');
+        return false;
+      }
+    } catch (e, stackTrace) {
+      _logger.error('Failed to restore playback state: $e, $stackTrace');
+      return false;
+    }
+  }
+
+  /// Get current playback state for saving
+  Map<String, dynamic>? getCurrentPlaybackState() {
+    if (_queue.isEmpty || _currentIndex < 0) {
+      return null;
+    }
+
+    return {
+      'queue': _queue.map((song) => song.id).toList(),
+      'currentIndex': _currentIndex,
+      'position': _player.position.inMilliseconds,
+    };
   }
 
   /// Dispose and recreate the player (for Android song switching)

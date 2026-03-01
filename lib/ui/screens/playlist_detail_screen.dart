@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/utils/image_cache_manager.dart';
 import '../../core/utils/logger.dart';
+import '../../core/utils/snackbar_utils.dart';
 import '../../data/models/models.dart';
 import '../../providers/providers.dart';
 import '../widgets/playlist_selection_dialog.dart';
@@ -393,15 +394,11 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
       ref.invalidate(playlistSongsProvider(widget.playlist.id));
       
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已从歌单中移除')),
-        );
+        showTopSnackBar(context, message: '已从歌单中移除');
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('移除失败: $e')),
-        );
+        showTopSnackBar(context, message: '移除失败: $e');
       }
     }
   }
@@ -435,9 +432,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                   final queueNotifier = ref.read(queueProvider.notifier);
                   queueNotifier.addToQueue(song);
                   audioService.addToQueue(song);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('已添加到队列')),
-                  );
+                  showTopSnackBar(context, message: '已添加到队列');
                 },
               ),
               ListTile(

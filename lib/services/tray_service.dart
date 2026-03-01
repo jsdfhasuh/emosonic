@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:path_provider/path_provider.dart';
 import '../core/utils/logger.dart';
 import 'audio_player_service.dart';
 
@@ -15,6 +17,7 @@ class TrayService with TrayListener {
   final Logger _logger = Logger('TrayService');
   bool _isInitialized = false;
   AudioPlayerService? _audioService;
+  String? _tempIconPath;
 
   /// Initialize tray service
   Future<void> initialize(AudioPlayerService audioService) async {
@@ -27,9 +30,25 @@ class TrayService with TrayListener {
     _audioService = audioService;
 
     try {
-      // Set tray icon (using default Flutter icon for now)
-      // You need to add assets/app_icon.ico to your project
-      await trayManager.setIcon('assets/app_icon.ico');
+      // Log path information for debugging
+      _logger.info('[DEBUG] Platform.resolvedExecutable: ${Platform.resolvedExecutable}');
+      _logger.info('[DEBUG] Directory.current: ${Directory.current.path}');
+      
+      // Try to extract icon to temp file
+      final tempPath = await _extractIconToTemp();
+      
+      if (tempPath != null) {
+        _logger.info('[DEBUG] Setting tray icon to temp file: $tempPath');
+        try {
+          await trayManager.setIcon(tempPath);
+          _logger.info('[DEBUG] Tray icon set successfully');
+          _tempIconPath = tempPath;
+        } catch (iconError) {
+          _logger.error('[DEBUG] Failed to set tray icon: $iconError');
+        }
+      } else {
+        _logger.error('[DEBUG] Failed to extract icon to temp file');
+      }
       
       // Set tray menu
       await _setTrayMenu();
@@ -39,8 +58,55 @@ class TrayService with TrayListener {
       
       _isInitialized = true;
       _logger.info('TrayService initialized successfully');
-    } catch (e) {
+    } catch (e, stackTrace) {
       _logger.error('Failed to initialize TrayService: $e');
+      _logger.error('Stack trace: $stackTrace');
+    }
+  }
+
+  /// Extract icon from assets to temp file
+  Future<String?> _extractIconToTemp() async {
+    try {
+      // Try multiple icon sources
+      final iconAssets = [
+        'assets/app_icon.ico',
+        'assets/test_icon.ico',
+        'assets/app_icon.png',
+      ];
+      
+      for (final assetPath in iconAssets) {
+        _logger.info('[DEBUG] Trying to load asset: $assetPath');
+        try {
+          final byteData = await rootBundle.load(assetPath);
+          final bytes = byteData.buffer.asUint8List();
+          _logger.info('[DEBUG] Loaded ${bytes.length} bytes from $assetPath');
+          
+          // Get temp directory
+          final tempDir = await getTemporaryDirectory();
+          final fileName = assetPath.split('/').last;
+          final tempPath = '${tempDir.path}/emosonic_$fileName';
+          
+          // Write to temp file
+          final file = File(tempPath);
+          await file.writeAsBytes(bytes);
+          _logger.info('[DEBUG] Written to temp file: $tempPath');
+          
+          // Verify file exists
+          if (await file.exists()) {
+            final fileSize = await file.length();
+            _logger.info('[DEBUG] Temp file verified: $tempPath ($fileSize bytes)');
+            return tempPath;
+          }
+        } catch (e) {
+          _logger.info('[DEBUG] Failed to load $assetPath: $e');
+          continue;
+        }
+      }
+      
+      return null;
+    } catch (e) {
+      _logger.error('[DEBUG] Error in _extractIconToTemp: $e');
+      return null;
     }
   }
 
@@ -189,6 +255,20 @@ class TrayService with TrayListener {
     if (!_isInitialized) return;
     trayManager.removeListener(this);
     await trayManager.destroy();
+    
+    // Clean up temp icon file
+    if (_tempIconPath != null) {
+      try {
+        final file = File(_tempIconPath!);
+        if (await file.exists()) {
+          await file.delete();
+          _logger.info('[DEBUG] Cleaned up temp icon file: $_tempIconPath');
+        }
+      } catch (e) {
+        _logger.warning('[DEBUG] Failed to clean up temp icon file: $e');
+      }
+    }
+    
     _isInitialized = false;
     _logger.info('TrayService disposed');
   }

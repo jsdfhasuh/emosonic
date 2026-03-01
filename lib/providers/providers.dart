@@ -14,57 +14,29 @@ import '../services/audio_player_service.dart';
 // Export navigation provider
 export 'navigation_provider.dart';
 
-// Server Config Provider
-final serverConfigProvider = StateNotifierProvider<ServerConfigNotifier, ServerConfig?>((ref) {
-  return ServerConfigNotifier();
-});
+// Import server configs provider (must be before apiClientProvider)
+// Using import instead of export to make serverConfigsProvider available immediately
+import 'server_configs_provider.dart';
 
-class ServerConfigNotifier extends StateNotifier<ServerConfig?> {
-  ServerConfigNotifier() : super(null) {
-    _loadConfig();
-  }
+// Re-export server configs for other files
+export 'server_configs_provider.dart';
 
-  Future<void> _loadConfig() async {
-    final prefs = await SharedPreferences.getInstance();
-    final url = prefs.getString('server_url');
-    final username = prefs.getString('server_username');
-    final password = prefs.getString('server_password');
-
-    if (url != null && username != null && password != null) {
-      state = ServerConfig(
-        url: url,
-        username: username,
-        password: password,
-      );
-    }
-  }
-
-  Future<void> saveConfig(ServerConfig config) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('server_url', config.url);
-    await prefs.setString('server_username', config.username);
-    await prefs.setString('server_password', config.password);
-    state = config;
-  }
-
-  Future<void> clearConfig() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('server_url');
-    await prefs.remove('server_username');
-    await prefs.remove('server_password');
-    state = null;
-  }
-}
-
-// API Client Provider
+// API Client Provider - listens to active server changes
+// This is defined after importing server_configs_provider.dart
 final apiClientProvider = Provider<SubsonicApiClient>((ref) {
   final client = SubsonicApiClient();
-  final config = ref.watch(serverConfigProvider);
-  if (config != null) {
-    client.setConfig(config);
+  // Watch serverConfigsProvider to rebuild when server changes
+  final serverState = ref.watch(serverConfigsProvider);
+  final activeServer = serverState.activeServer;
+  
+  if (activeServer != null) {
+    client.setConfig(activeServer);
   }
+  
   return client;
 });
+
+
 
 // Audio Player Service Provider
 final audioPlayerServiceProvider = Provider<AudioPlayerService>((ref) {
