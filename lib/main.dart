@@ -393,9 +393,11 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
         NavigationRail(
           extended: isExpanded,
           minExtendedWidth: 200,
+          minWidth: 72,
           selectedIndex: _getBottomNavIndex(navigation.currentPage),
           onDestinationSelected: (index) => _onBottomNavTap(index, navigationNotifier),
           leading: IconButton(
+            iconSize: 28,
             icon: Icon(isExpanded ? Icons.menu_open : Icons.menu),
             onPressed: () {
               ref.read(desktopNavExpandedProvider.notifier).setExpanded(!isExpanded);
@@ -403,28 +405,28 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
           ),
           destinations: const [
             NavigationRailDestination(
-              icon: Icon(Icons.explore_outlined),
-              selectedIcon: Icon(Icons.explore),
+              icon: Icon(Icons.explore_outlined, size: 28),
+              selectedIcon: Icon(Icons.explore, size: 28),
               label: Text('发现'),
             ),
             NavigationRailDestination(
-              icon: Icon(Icons.library_music_outlined),
-              selectedIcon: Icon(Icons.library_music),
+              icon: Icon(Icons.library_music_outlined, size: 28),
+              selectedIcon: Icon(Icons.library_music, size: 28),
               label: Text('音乐库'),
             ),
             NavigationRailDestination(
-              icon: Icon(Icons.favorite_outline),
-              selectedIcon: Icon(Icons.favorite),
+              icon: Icon(Icons.favorite_outline, size: 28),
+              selectedIcon: Icon(Icons.favorite, size: 28),
               label: Text('收藏'),
             ),
             NavigationRailDestination(
-              icon: Icon(Icons.play_circle_outline),
-              selectedIcon: Icon(Icons.play_circle),
+              icon: Icon(Icons.play_circle_outline, size: 28),
+              selectedIcon: Icon(Icons.play_circle, size: 28),
               label: Text('播放'),
             ),
             NavigationRailDestination(
-              icon: Icon(Icons.settings_outlined),
-              selectedIcon: Icon(Icons.settings),
+              icon: Icon(Icons.settings_outlined, size: 28),
+              selectedIcon: Icon(Icons.settings, size: 28),
               label: Text('设置'),
             ),
           ],
