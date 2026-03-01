@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/utils/image_cache_manager.dart';
+import '../../data/models/lyric_line.dart';
+import '../../data/models/models.dart';
 import '../../providers/providers.dart';
+import '../../services/audio_player_service.dart';
 import '../screens/player_screen.dart';
-import 'audio_waveform.dart';
 import 'auto_marquee_text.dart';
 import 'star_button.dart';
 
@@ -188,7 +191,7 @@ class MiniPlayer extends ConsumerWidget {
                       },
                     ),
                     const SizedBox(width: 12),
-                    // Song Info with marquee
+                    // Song Info with marquee and lyrics
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,21 +212,11 @@ class MiniPlayer extends ConsumerWidget {
                               blankSpace: 20.0,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          // Artist with auto marquee
-                          SizedBox(
-                            height: 18,
-                            child: AutoMarqueeText(
-                              text: currentSong.artistName,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.white.withAlpha(179),
-                              ),
-                              height: 18,
-                              velocity: 30.0,
-                              pauseAfterRound: const Duration(seconds: 1),
-                              blankSpace: 20.0,
-                            ),
+                          const SizedBox(height: 2),
+                          // Current lyric line
+                          _MiniPlayerLyrics(
+                            song: currentSong,
+                            audioService: audioService,
                           ),
                         ],
                       ),
@@ -285,6 +278,127 @@ class MiniPlayer extends ConsumerWidget {
       height: 48,
       color: const Color(0xFF2D3B4E),
       child: const Icon(Icons.music_note, color: Colors.white54),
+    );
+  }
+}
+
+/// Simplified lyrics display for mini player
+class _MiniPlayerLyrics extends ConsumerStatefulWidget {
+  final Song song;
+  final AudioPlayerService audioService;
+
+  const _MiniPlayerLyrics({
+    required this.song,
+    required this.audioService,
+  });
+
+  @override
+  ConsumerState<_MiniPlayerLyrics> createState() => _MiniPlayerLyricsState();
+}
+
+class _MiniPlayerLyricsState extends ConsumerState<_MiniPlayerLyrics> {
+  StreamSubscription<Duration>? _positionSubscription;
+  int _currentIndex = 0;
+  List<LyricLine> _lyrics = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLyrics();
+    _setupPositionListener();
+  }
+
+  @override
+  void dispose() {
+    _positionSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadLyrics() async {
+    final lyricsService = ref.read(lyricsServiceProvider);
+    final lyrics = await lyricsService.getLyricsForSong(widget.song);
+    if (mounted) {
+      setState(() {
+        _lyrics = lyrics;
+      });
+    }
+  }
+
+  void _setupPositionListener() {
+    _positionSubscription = widget.audioService.positionStream.listen((position) {
+      if (_lyrics.isEmpty) return;
+
+      int currentIndex = 0;
+      for (int i = 0; i < _lyrics.length; i++) {
+        if (position >= _lyrics[i].time) {
+          currentIndex = i;
+        } else {
+          break;
+        }
+      }
+
+      if (mounted && currentIndex != _currentIndex) {
+        setState(() {
+          _currentIndex = currentIndex;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_lyrics.isEmpty) {
+      return const SizedBox(
+        height: 16,
+        child: Text(
+          '暂无歌词',
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      );
+    }
+
+    final currentLine = _lyrics[_currentIndex.clamp(0, _lyrics.length - 1)];
+    final nextIndex = _currentIndex + 1;
+    final nextLine = nextIndex < _lyrics.length ? _lyrics[nextIndex] : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Current line
+        SizedBox(
+          height: 16,
+          child: Text(
+            currentLine.text,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Colors.white,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        // Next line (if available)
+        if (nextLine != null)
+          SizedBox(
+            height: 14,
+            child: Text(
+              nextLine.text,
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey[500],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+      ],
     );
   }
 }
