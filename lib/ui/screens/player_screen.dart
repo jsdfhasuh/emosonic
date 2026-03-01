@@ -126,11 +126,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         final coverSize = (availableHeight * 0.5).clamp(200.0, 350.0);
         final horizontalPadding = availableWidth * 0.08;
         
-        return Padding(
-          padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
+        return SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               // Cover Art
               Flexible(
                 flex: 5,
@@ -348,7 +349,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               ),
             ],
           ),
-        );
+        ),
+      );
       },
     );
   }
