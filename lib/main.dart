@@ -206,6 +206,10 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
 
     Logger('Main').info('Auto resume playback is enabled, attempting to restore...');
 
+    // Get container before any async operations
+    if (!mounted) return;
+    final container = ProviderScope.containerOf(context);
+
     try {
       final audioService = ref.read(audioPlayerServiceProvider);
       final restored = await audioService.restorePlaybackState();
@@ -221,10 +225,10 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
         }
 
         // Apply saved playback speed
-        final savedSpeed = ref.read(playbackSpeedSettingProvider);
+        final savedSpeed = container.read(playbackSpeedSettingProvider);
         if (savedSpeed != 1.0) {
+          final audioService = container.read(audioPlayerServiceProvider);
           audioService.setSpeed(savedSpeed);
-          Logger('Main').info('Applied saved playback speed: $savedSpeed');
         }
       } else {
         Logger('Main').info('No playback state to restore or restore failed');
