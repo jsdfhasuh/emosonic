@@ -358,6 +358,12 @@ final shuffleModeProvider = StreamProvider<bool>((ref) {
   return audioService.shuffleModeEnabledStream;
 });
 
+// Playback Speed Provider
+final speedProvider = StreamProvider<double>((ref) {
+  final audioService = ref.watch(audioPlayerServiceProvider);
+  return audioService.speedStream;
+});
+
 // Audio cache settings
 final audioCacheEnabledProvider = StateNotifierProvider<AudioCacheEnabledNotifier, bool>((ref) {
   return AudioCacheEnabledNotifier();
@@ -553,3 +559,28 @@ class OfflineModeNotifier extends StateNotifier<bool> {
 final cachedSongsProvider = FutureProvider<List<String>>((ref) async {
   return await AudioCacheManager().getCachedSongIds();
 });
+
+// Playback speed setting (persisted)
+final playbackSpeedSettingProvider = StateNotifierProvider<PlaybackSpeedSettingNotifier, double>((ref) {
+  return PlaybackSpeedSettingNotifier();
+});
+
+class PlaybackSpeedSettingNotifier extends StateNotifier<double> {
+  static const double defaultSpeed = 1.0;
+
+  PlaybackSpeedSettingNotifier() : super(defaultSpeed) {
+    _loadSetting();
+  }
+
+  Future<void> _loadSetting() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getDouble('playback_speed') ?? defaultSpeed;
+  }
+
+  Future<void> setSpeed(double speed) async {
+    final clamped = speed.clamp(0.5, 2.0);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('playback_speed', clamped);
+    state = clamped;
+  }
+}
