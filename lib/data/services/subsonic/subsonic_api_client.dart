@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
+import 'package:xml/xml.dart';
 import '../../models/models.dart';
 import '../../models/search_result.dart';
 import '../../../core/utils/logger.dart';
@@ -660,5 +661,55 @@ class SubsonicApiClient {
     
     _logger.info('Unstarring items: songs=${songIds?.length ?? 0}, albums=${albumIds?.length ?? 0}, artists=${artistIds?.length ?? 0}');
     await _get('unstar', params: params);
+  }
+
+  /// Get lyrics for a song
+  /// Returns LRC text or null if not found
+  Future<String?> getLyrics({required String artist, required String title, String? id}) async {
+    if (_config == null) {
+      throw Exception('Server config not set');
+    }
+
+    final params = <String, dynamic>{
+      'artist': artist,
+      'title': title,
+    };
+    if (id != null && id.isNotEmpty) {
+      params['id'] = id;
+    }
+
+    _logger.debug('Fetching lyrics: artist=$artist, title=$title, id=$id');
+
+    try {
+      final response = await _dio.get(
+        '/$_apiEndpoint/getLyrics',
+        queryParameters: {
+          ..._getAuthParams(),
+          ...params,
+        },
+        options: Options(responseType: ResponseType.plain),
+      );
+
+      final xmlString = response.data as String;
+      final document = XmlDocument.parse(xmlString);
+      final lyricsElement = document.findAllElements('lyrics').firstOrNull;
+
+      if (lyricsElement == null) {
+        _logger.debug('No lyrics element found in response');
+        return null;
+      }
+
+      final lyricsText = lyricsElement.innerText;
+      if (lyricsText.isEmpty) {
+        _logger.debug('Empty lyrics text');
+        return null;
+      }
+
+      _logger.info('Lyrics fetched successfully for: $title');
+      return lyricsText;
+    } catch (e) {
+      _logger.error('Error fetching lyrics: $e');
+      return null;
+    }
   }
 }
