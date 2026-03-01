@@ -145,9 +145,9 @@ class MiniPlayer extends ConsumerWidget {
                               ClipOval(
                                 key: ValueKey(albumId),
                                 child: ImageCacheManager().getCachedImage(
-                                  imageUrl: currentSong.coverArt != null
+                                  imageUrl: currentSong.albumId != null
                                       ? ref.read(apiClientProvider).getCoverArtUrl(
-                                          currentSong.coverArt!,
+                                          currentSong.coverArt ?? '',
                                           itemId: currentSong.albumId,
                                         )
                                       : '',

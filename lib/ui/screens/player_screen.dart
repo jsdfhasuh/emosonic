@@ -107,8 +107,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       key: ValueKey(albumId),
                       borderRadius: BorderRadius.circular(16),
                       child: ImageCacheManager().getCachedImage(
-                        imageUrl: currentSong.coverArt != null
-                            ? ref.read(apiClientProvider).getCoverArtUrl(currentSong.coverArt!, itemId: currentSong.albumId)
+                        imageUrl: currentSong.albumId != null
+                            ? ref.read(apiClientProvider).getCoverArtUrl(currentSong.coverArt ?? '', itemId: currentSong.albumId)
                             : '',
                         width: coverSize,
                         height: coverSize,

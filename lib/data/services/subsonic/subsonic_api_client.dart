@@ -293,62 +293,6 @@ class SubsonicApiClient {
     return url;
   }
 
-  /// 检查封面是否存在
-  Future<bool> checkCoverArtExists(String coverArtId, {String? itemId}) async {
-    try {
-      if (_config == null) {
-        return false;
-      }
-
-      final salt = _generateSalt();
-      final token = _generateToken(_config!.password, salt);
-
-      // Build auth params without f=json for binary image endpoint
-      final authParams = {
-        'u': _config!.username,
-        't': token,
-        's': salt,
-        'v': _apiVersion,
-        'c': _clientId,
-      };
-
-      // If coverArtId is a number, use itemId with proper prefix instead
-      String id = coverArtId;
-      if (itemId != null && int.tryParse(coverArtId) != null) {
-        if (itemId.startsWith('ar-')) {
-          id = itemId;
-        } else {
-          id = 'al-$itemId';
-        }
-      }
-
-      _logger.debug('Checking cover art exists: id=$id');
-
-      // 发送 HEAD 请求检查
-      final apiPath = _apiEndpoint;
-      final response = await _dio.head(
-        '/$apiPath/getCoverArt',
-        queryParameters: {
-          ...authParams,
-          'id': id,
-          'size': 1,
-        },
-      );
-
-      // 检查 Content-Type 是否是图片
-      final contentType = response.headers.value('content-type');
-      final exists = contentType != null &&
-          (contentType.startsWith('image/') ||
-           contentType == 'application/octet-stream');
-
-      _logger.debug('Cover art exists: $exists, content-type: $contentType');
-      return exists;
-    } catch (e) {
-      _logger.debug('Check cover art failed: $e');
-      return false;
-    }
-  }
-
   Future<SearchResult> search(String query) async {
     _logger.info('Searching for: $query');
     final response = await _get('search3', params: {
@@ -475,7 +419,12 @@ class SubsonicApiClient {
     if (playlistData != null && playlistData['entry'] != null) {
       for (final song in playlistData['entry']) {
         try {
-          songs.add(Song.fromJson(song));
+          final songMap = Map<String, dynamic>.from(song);
+          // Set coverArt from album if not present in song
+          if (songMap['coverArt'] == null && songMap['albumId'] != null) {
+            songMap['coverArt'] = 'al-${songMap['albumId']}';
+          }
+          songs.add(Song.fromJson(songMap));
         } catch (e) {
           _logger.error('Error parsing song: $e, data: $song');
         }
@@ -589,7 +538,12 @@ class SubsonicApiClient {
     if (randomSongsData != null && randomSongsData['song'] != null) {
       for (final song in randomSongsData['song']) {
         try {
-          songs.add(Song.fromJson(song));
+          final songMap = Map<String, dynamic>.from(song);
+          // Set coverArt from album if not present in song
+          if (songMap['coverArt'] == null && songMap['albumId'] != null) {
+            songMap['coverArt'] = 'al-${songMap['albumId']}';
+          }
+          songs.add(Song.fromJson(songMap));
         } catch (e) {
           _logger.error('Error parsing song: $e, data: $song');
         }
@@ -612,7 +566,12 @@ class SubsonicApiClient {
     if (songsByGenreData != null && songsByGenreData['song'] != null) {
       for (final song in songsByGenreData['song']) {
         try {
-          songs.add(Song.fromJson(song));
+          final songMap = Map<String, dynamic>.from(song);
+          // Set coverArt from album if not present in song
+          if (songMap['coverArt'] == null && songMap['albumId'] != null) {
+            songMap['coverArt'] = 'al-${songMap['albumId']}';
+          }
+          songs.add(Song.fromJson(songMap));
         } catch (e) {
           _logger.error('Error parsing song: $e, data: $song');
         }

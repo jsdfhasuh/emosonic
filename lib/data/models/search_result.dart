@@ -39,7 +39,12 @@ class SearchResult {
     if (json['song'] != null && json['song'] is List) {
       for (final song in json['song']) {
         try {
-          songs.add(Song.fromJson(song));
+          final songMap = Map<String, dynamic>.from(song);
+          // Set coverArt from album if not present in song
+          if (songMap['coverArt'] == null && songMap['albumId'] != null) {
+            songMap['coverArt'] = 'al-${songMap['albumId']}';
+          }
+          songs.add(Song.fromJson(songMap));
         } catch (e) {
           // Skip invalid song data
         }
