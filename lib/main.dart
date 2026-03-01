@@ -281,8 +281,11 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
     
     switch (behavior) {
       case 'exit':
-        // Direct exit - force close immediately
-        Logger('Main').info('Exit timing: Force closing application');
+        // Direct exit - hide window first then force close
+        Logger('Main').info('Exit timing: Hiding window before exit');
+        
+        // Hide window immediately for better UX
+        await windowManager.hide();
         
         // Allow window to close
         await windowManager.setPreventClose(false);
