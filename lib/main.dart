@@ -227,8 +227,11 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
         // Apply saved playback speed
         final savedSpeed = container.read(playbackSpeedSettingProvider);
         if (savedSpeed != 1.0) {
-          final audioService = container.read(audioPlayerServiceProvider);
-          audioService.setSpeed(savedSpeed);
+          try {
+            await audioService.setSpeed(savedSpeed);
+          } catch (e) {
+            Logger('Main').error('Failed to restore playback speed: $e');
+          }
         }
       } else {
         Logger('Main').info('No playback state to restore or restore failed');
