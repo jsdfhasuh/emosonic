@@ -1,5 +1,5 @@
 import 'dart:io';
-
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -159,6 +159,8 @@ class MainScreen extends ConsumerStatefulWidget {
 }
 
 class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
+  String _windowCloseBehavior = 'ask';
+
   @override
   void initState() {
     super.initState();
@@ -168,6 +170,18 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
     }
     // Restore playback state if auto-resume is enabled
     _restorePlaybackState();
+    // Cache window close behavior
+    _loadWindowCloseBehavior();
+  }
+
+  Future<void> _loadWindowCloseBehavior() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _windowCloseBehavior = prefs.getString('window_close_behavior') ?? 'ask';
+      Logger('Main').info('Cached window_close_behavior: $_windowCloseBehavior');
+    } catch (e) {
+      Logger('Main').error('Failed to load window_close_behavior: $e');
+    }
   }
 
   Future<void> _restorePlaybackState() async {
@@ -205,6 +219,13 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
           ref.read(currentSongProvider.notifier).state = currentSong;
           Logger('Main').info('[DEBUG] currentSongProvider updated successfully');
         }
+
+        // Apply saved playback speed
+        final savedSpeed = ref.read(playbackSpeedSettingProvider);
+        if (savedSpeed != 1.0) {
+          audioService.setSpeed(savedSpeed);
+          Logger('Main').info('Applied saved playback speed: $savedSpeed');
+        }
       } else {
         Logger('Main').info('No playback state to restore or restore failed');
       }
@@ -232,8 +253,10 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
 
   @override
   void onWindowClose() async {
+    final startTime = DateTime.now();
+    Logger('Main').info('Exit timing: onWindowClose started at ${startTime.toIso8601String()}');
+
     // Save playback state asynchronously without blocking
-    // This allows the app to close immediately while saving in background
     try {
       final audioService = ref.read(audioPlayerServiceProvider);
       audioService.savePlaybackState().then((_) {
@@ -245,15 +268,21 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
       Logger('Main').error('Failed to start playback state save: $e');
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    final behavior = prefs.getString('window_close_behavior') ?? 'ask';
+    // Use cached behavior to avoid blocking on SharedPreferences
+    final behavior = _windowCloseBehavior;
+    Logger('Main').info('Exit timing: Using cached behavior: $behavior');
     
     switch (behavior) {
       case 'exit':
-        // Direct exit
-        await TrayService().dispose();
-        await windowManager.destroy();
-        break;
+        // Direct exit - force close immediately
+        Logger('Main').info('Exit timing: Force closing application');
+        
+        // Allow window to close
+        await windowManager.setPreventClose(false);
+        
+        // Force exit immediately - skip cleanup to ensure fast exit
+        Logger('Main').info('Exit timing: Calling exit(0)');
+        exit(0);
       case 'minimize':
         // Minimize to tray
         await windowManager.hide();
