@@ -665,3 +665,9 @@ final lyricsProvider = FutureProvider.family<List<LyricLine>, Song>((ref, song) 
 
 // Current lyric index provider - tracks which line is currently playing
 final currentLyricIndexProvider = StateProvider<int>((ref) => 0);
+
+// Player screen tab enum
+enum PlayerTab { album, lyrics }
+
+// Player screen tab provider
+final playerTabProvider = StateProvider<PlayerTab>((ref) => PlayerTab.album);
