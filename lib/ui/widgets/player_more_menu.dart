@@ -116,78 +116,73 @@ class _PlayerMoreMenuContent extends ConsumerWidget {
 
   /// Open the existing VolumeControl bottom sheet.
   void _showVolumeBottomSheet(BuildContext context, WidgetRef ref) {
-    final volumeAsync = ref.watch(volumeProvider);
+    final audioService = ref.read(audioPlayerServiceProvider);
+    final currentVolume = audioService.currentVolume;
 
-    volumeAsync.when(
-      data: (volume) {
-        showModalBottomSheet(
-          context: context,
-          backgroundColor: const Color(0xFF1E293B),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          builder: (context) {
-            return SafeArea(
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withAlpha(51),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      '音量调节',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 24),
-                    StreamBuilder<double>(
-                      stream: ref.read(audioPlayerServiceProvider).volumeStream,
-                      initialData: volume,
-                      builder: (context, snapshot) {
-                        final v = snapshot.data ?? volume;
-                        return Column(
-                          children: [
-                            Text(
-                              '${(v * 100).toInt()}%',
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF6B8DD6),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Slider(
-                              value: v,
-                              min: 0,
-                              max: 1,
-                              divisions: 100,
-                              activeColor: const Color(0xFF6B8DD6),
-                              inactiveColor: Colors.white.withAlpha(26),
-                              onChanged: (value) {
-                                ref.read(audioPlayerServiceProvider).setVolume(value);
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(51),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-            );
-          },
+                const SizedBox(height: 24),
+                const Text(
+                  '音量调节',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 24),
+                StreamBuilder<double>(
+                  stream: audioService.volumeStream,
+                  initialData: currentVolume,
+                  builder: (context, snapshot) {
+                    final volume = snapshot.data ?? currentVolume;
+                    return Column(
+                      children: [
+                        Text(
+                          '${(volume * 100).toInt()}%',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF6B8DD6),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Slider(
+                          value: volume,
+                          min: 0,
+                          max: 1,
+                          divisions: 100,
+                          activeColor: const Color(0xFF6B8DD6),
+                          inactiveColor: Colors.white.withAlpha(26),
+                          onChanged: (value) {
+                            audioService.setVolume(value);
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
         );
       },
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
     );
   }
 
@@ -204,52 +199,54 @@ class _PlayerMoreMenuContent extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(51),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    '播放速度',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        return SafeArea(
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(51),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-              ),
-              ...speeds.map((speed) {
-                final isSelected = (speed - currentSpeed).abs() < 0.01;
-                return ListTile(
-                  title: Text(
-                    '${speed.toStringAsFixed(speed == speed.roundToDouble() ? 1 : 2)}x',
-                    style: TextStyle(
-                      color: isSelected ? const Color(0xFF6B8DD6) : Colors.white,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '播放速度',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
-                  trailing: isSelected
-                      ? const Icon(Icons.check, color: Color(0xFF6B8DD6))
-                      : null,
-                  onTap: () {
-                    audioService.setSpeed(speed);
-                    ref.read(playbackSpeedSettingProvider.notifier).setSpeed(speed);
-                    Navigator.pop(context);
-                  },
-                );
-              }),
-              const SizedBox(height: 8),
-            ],
+                ),
+                ...speeds.map((speed) {
+                  final isSelected = (speed - currentSpeed).abs() < 0.01;
+                  return ListTile(
+                    title: Text(
+                      '${speed.toStringAsFixed(speed == speed.roundToDouble() ? 1 : 2)}x',
+                      style: TextStyle(
+                        color: isSelected ? const Color(0xFF6B8DD6) : Colors.white,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    trailing: isSelected
+                        ? const Icon(Icons.check, color: Color(0xFF6B8DD6))
+                        : null,
+                    onTap: () {
+                      audioService.setSpeed(speed);
+                      ref.read(playbackSpeedSettingProvider.notifier).setSpeed(speed);
+                      Navigator.pop(context);
+                    },
+                  );
+                }),
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
         );
       },
@@ -271,74 +268,76 @@ class _PlayerMoreMenuContent extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(51),
-                  borderRadius: BorderRadius.circular(2),
+        return SafeArea(
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(51),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        '定时关闭',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    if (currentState.isActive)
-                      TextButton(
-                        onPressed: () {
-                          ref.read(sleepTimerProvider.notifier).cancelTimer();
-                          Navigator.pop(context);
-                        },
-                        child: const Text(
-                          '取消定时',
-                          style: TextStyle(color: Colors.redAccent),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              if (currentState.isActive)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Row(
                     children: [
-                      const Icon(Icons.timer, size: 16, color: Color(0xFF6B8DD6)),
-                      const SizedBox(width: 8),
-                      Text(
-                        '当前: ${currentState.displayText}',
-                        style: const TextStyle(color: Color(0xFF6B8DD6)),
+                      const Expanded(
+                        child: Text(
+                          '定时关闭',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
                       ),
+                      if (currentState.isActive)
+                        TextButton(
+                          onPressed: () {
+                            ref.read(sleepTimerProvider.notifier).cancelTimer();
+                            Navigator.pop(context);
+                          },
+                          child: const Text(
+                            '取消定时',
+                            style: TextStyle(color: Colors.redAccent),
+                          ),
+                        ),
                     ],
                   ),
                 ),
-              const Divider(),
-              ...countdownOptions.map((minutes) {
-                final label = minutes >= 60
-                    ? '${minutes ~/ 60} 小时${minutes % 60 > 0 ? ' ${minutes % 60} 分钟' : ''}'
-                    : '$minutes 分钟';
-                return ListTile(
-                  leading: const Icon(Icons.hourglass_bottom),
-                  title: Text(label),
-                  onTap: () {
-                    ref.read(sleepTimerProvider.notifier).setCountdown(minutes);
-                    Navigator.pop(context);
-                  },
-                );
-              }),
-              const SizedBox(height: 8),
-            ],
+                if (currentState.isActive)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.timer, size: 16, color: Color(0xFF6B8DD6)),
+                        const SizedBox(width: 8),
+                        Text(
+                          '当前: ${currentState.displayText}',
+                          style: const TextStyle(color: Color(0xFF6B8DD6)),
+                        ),
+                      ],
+                    ),
+                  ),
+                const Divider(),
+                ...countdownOptions.map((minutes) {
+                  final label = minutes >= 60
+                      ? '${minutes ~/ 60} 小时${minutes % 60 > 0 ? ' ${minutes % 60} 分钟' : ''}'
+                      : '$minutes 分钟';
+                  return ListTile(
+                    leading: const Icon(Icons.hourglass_bottom),
+                    title: Text(label),
+                    onTap: () {
+                      ref.read(sleepTimerProvider.notifier).setCountdown(minutes);
+                      Navigator.pop(context);
+                    },
+                  );
+                }),
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
         );
       },
