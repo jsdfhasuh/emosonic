@@ -9,30 +9,27 @@ class PlaybackModeControls extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final loopModeAsync = ref.watch(loopModeProvider);
-    final shuffleModeAsync = ref.watch(shuffleModeProvider);
+    final isShuffled = ref.watch(shuffleModeProvider);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         // Shuffle button
-        shuffleModeAsync.when(
-          data: (isShuffled) {
-            return IconButton(
-              icon: Icon(
-                Icons.shuffle,
-                color: isShuffled 
-                    ? const Color(0xFF6B8DD6) 
-                    : Colors.white54,
-              ),
-              tooltip: isShuffled ? '随机播放: 开启' : '随机播放: 关闭',
-              onPressed: () {
-                final audioService = ref.read(audioPlayerServiceProvider);
-                audioService.setShuffleModeEnabled(!isShuffled);
-              },
-            );
+        IconButton(
+          icon: Icon(
+            Icons.shuffle,
+            color: isShuffled
+                ? const Color(0xFF6B8DD6)
+                : Colors.white54,
+          ),
+          tooltip: isShuffled ? '随机播放: 开启' : '随机播放: 关闭',
+          onPressed: () async {
+            final audioService = ref.read(audioPlayerServiceProvider);
+            final newState = !isShuffled;
+            await audioService.setShuffleModeEnabled(newState);
+            // Persist shuffle mode setting
+            await ref.read(shuffleModeSettingProvider.notifier).setShuffleMode(newState);
           },
-          loading: () => const SizedBox.shrink(),
-          error: (err, __) => const SizedBox.shrink(),
         ),
         
         // Loop mode button

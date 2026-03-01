@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart' show LoopMode;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -352,11 +354,31 @@ final loopModeProvider = StreamProvider<LoopMode>((ref) {
   return audioService.loopModeStream;
 });
 
-// Shuffle Mode Provider
-final shuffleModeProvider = StreamProvider<bool>((ref) {
+// Shuffle Mode Provider - 使用 StateNotifierProvider 确保有初始值
+final shuffleModeProvider = StateNotifierProvider<ShuffleModeNotifier, bool>((ref) {
   final audioService = ref.watch(audioPlayerServiceProvider);
-  return audioService.shuffleModeEnabledStream;
+  return ShuffleModeNotifier(audioService);
 });
+
+class ShuffleModeNotifier extends StateNotifier<bool> {
+  StreamSubscription<bool>? _subscription;
+
+  ShuffleModeNotifier(AudioPlayerService audioService) : super(false) {
+    // 立即获取当前状态
+    state = audioService.shuffleModeEnabled;
+
+    // 监听状态变化
+    _subscription = audioService.shuffleModeStateStream.listen((enabled) {
+      state = enabled;
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+}
 
 // Playback Speed Provider
 final speedProvider = StreamProvider<double>((ref) {
@@ -582,5 +604,27 @@ class PlaybackSpeedSettingNotifier extends StateNotifier<double> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('playback_speed', clamped);
     state = clamped;
+  }
+}
+
+// Shuffle mode setting (persisted)
+final shuffleModeSettingProvider = StateNotifierProvider<ShuffleModeSettingNotifier, bool>((ref) {
+  return ShuffleModeSettingNotifier();
+});
+
+class ShuffleModeSettingNotifier extends StateNotifier<bool> {
+  ShuffleModeSettingNotifier() : super(false) {
+    _loadSetting();
+  }
+
+  Future<void> _loadSetting() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool('shuffle_mode') ?? false;
+  }
+
+  Future<void> setShuffleMode(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('shuffle_mode', enabled);
+    state = enabled;
   }
 }
