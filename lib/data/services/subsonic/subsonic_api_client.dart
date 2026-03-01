@@ -73,7 +73,7 @@ class SubsonicApiClient {
     _logger.info('Server config set: ${config.url}, user: ${config.username}');
   }
 
-  Map<String, dynamic> _getAuthParams() {
+  Map<String, dynamic> _getAuthParams({bool useJson = true}) {
     if (_config == null) {
       throw Exception('Server config not set');
     }
@@ -81,14 +81,19 @@ class SubsonicApiClient {
     final salt = _generateSalt();
     final token = _generateToken(_config!.password, salt);
 
-    return {
+    final params = {
       'u': _config!.username,
       't': token,
       's': salt,
       'v': _apiVersion,
       'c': _clientId,
-      'f': 'json',
     };
+
+    if (useJson) {
+      params['f'] = 'json';
+    }
+
+    return params;
   }
 
   String _generateSalt() {
@@ -685,7 +690,7 @@ class SubsonicApiClient {
       final response = await _dio.get(
         '/$_apiEndpoint/getLyrics',
         queryParameters: {
-          ..._getAuthParams(),
+          ..._getAuthParams(useJson: false),
           ...params,
         },
         options: Options(responseType: ResponseType.plain),
