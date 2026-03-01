@@ -7,6 +7,7 @@ import '../widgets/volume_control.dart';
 import '../widgets/playback_mode_controls.dart';
 import '../widgets/star_button.dart';
 import '../widgets/player_more_menu.dart';
+import '../widgets/lyrics_display.dart';
 
 class PlayerScreen extends ConsumerStatefulWidget {
   const PlayerScreen({super.key});
@@ -76,12 +77,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         builder: (context, constraints) {
           final availableHeight = constraints.maxHeight;
           final availableWidth = constraints.maxWidth;
+          final isWideScreen = availableWidth > 800;
           
           // Calculate adaptive sizes
-          final coverSize = (availableHeight * 0.45).clamp(200.0, 350.0);
+          final coverSize = isWideScreen 
+              ? (availableHeight * 0.5).clamp(250.0, 400.0)
+              : (availableHeight * 0.45).clamp(200.0, 350.0);
           final horizontalPadding = availableWidth * 0.08;
           
-          return Padding(
+          // Build the main player content
+          Widget playerContent = Padding(
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -312,6 +317,32 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               ],
             ),
           );
+          
+          // For wide screens, show lyrics on the right side
+          if (isWideScreen) {
+            return Row(
+              children: [
+                // Left side: Player content
+                Expanded(
+                  flex: 1,
+                  child: playerContent,
+                ),
+                // Divider
+                const VerticalDivider(width: 1),
+                // Right side: Lyrics
+                Expanded(
+                  flex: 1,
+                  child: LyricsDisplay(
+                    song: currentSong,
+                    audioService: audioService,
+                  ),
+                ),
+              ],
+            );
+          }
+          
+          // For narrow screens, just show player content
+          return playerContent;
         },
       ),
     );
