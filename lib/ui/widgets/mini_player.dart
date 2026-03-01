@@ -309,6 +309,18 @@ class _MiniPlayerLyricsState extends ConsumerState<_MiniPlayerLyrics> {
   }
 
   @override
+  void didUpdateWidget(covariant _MiniPlayerLyrics oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.song.id != widget.song.id) {
+      _lyrics = [];
+      _currentIndex = 0;
+      _positionSubscription?.cancel();
+      _setupPositionListener();
+      _loadLyrics();
+    }
+  }
+
+  @override
   void dispose() {
     _positionSubscription?.cancel();
     super.dispose();
