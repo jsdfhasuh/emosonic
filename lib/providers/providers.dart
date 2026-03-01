@@ -16,6 +16,9 @@ import '../data/models/lyric_line.dart';
 // Export navigation provider
 export 'navigation_provider.dart';
 
+// Export auto resume playback provider
+export 'auto_resume_playback_provider.dart';
+
 // Import server configs provider (must be before apiClientProvider)
 // Using import instead of export to make serverConfigsProvider available immediately
 import 'server_configs_provider.dart';

@@ -144,11 +144,26 @@ class SettingsScreen extends ConsumerWidget {
             false,
             (value) {},
           ),
-          _buildSwitchTile(
-            '启动自动播放',
-            '应用启动时继续上次播放',
-            false,
-            (value) {},
+          Consumer(
+            builder: (context, ref, child) {
+              final autoResumeEnabled = ref.watch(autoResumePlaybackProvider);
+              return _buildSwitchTile(
+                '启动自动播放',
+                '应用启动时继续上次播放',
+                autoResumeEnabled,
+                (value) async {
+                  await ref
+                      .read(autoResumePlaybackProvider.notifier)
+                      .setEnabled(value);
+                  if (context.mounted) {
+                    showTopSnackBar(
+                      context,
+                      message: value ? '已开启启动自动播放' : '已关闭启动自动播放',
+                    );
+                  }
+                },
+              );
+            },
           ),
           _buildListTile(
             '定时停止',
