@@ -97,6 +97,9 @@ dependencies:
   # Top/bottom snackbar notifications
   another_flushbar: ^1.12.30
 
+  # XML parsing for lyrics
+  xml: ^6.5.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
