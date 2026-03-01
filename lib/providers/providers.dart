@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart' show LoopMode;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -626,5 +624,27 @@ class ShuffleModeSettingNotifier extends StateNotifier<bool> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('shuffle_mode', enabled);
     state = enabled;
+  }
+}
+
+// Desktop navigation rail expanded state (persisted)
+final desktopNavExpandedProvider = StateNotifierProvider<DesktopNavExpandedNotifier, bool>((ref) {
+  return DesktopNavExpandedNotifier();
+});
+
+class DesktopNavExpandedNotifier extends StateNotifier<bool> {
+  DesktopNavExpandedNotifier() : super(false) {
+    _loadSetting();
+  }
+
+  Future<void> _loadSetting() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool('desktop_nav_expanded') ?? false;
+  }
+
+  Future<void> setExpanded(bool expanded) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('desktop_nav_expanded', expanded);
+    state = expanded;
   }
 }

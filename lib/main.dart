@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -331,6 +331,9 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
     final navigation = ref.watch(navigationProvider);
     final navigationNotifier = ref.read(navigationProvider.notifier);
 
+    // Check if desktop platform
+    final isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
     return PopScope(
       canPop: !navigationNotifier.canPop,
       onPopInvokedWithResult: (didPop, result) {
@@ -340,59 +343,11 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
         }
       },
       child: Scaffold(
-        body: Stack(
-          children: [
-            // Main page content
-            _buildMainContent(navigation.currentPage),
-
-            // Sub-pages (Album/Songs) as overlay
-            if (navigation.currentPage == PageType.album &&
-                navigation.selectedArtist != null)
-              AlbumScreen(
-                artist: navigation.selectedArtist!,
-                onBack: () => navigationNotifier.pop(),
-              ),
-
-            if (navigation.currentPage == PageType.songs &&
-                navigation.selectedAlbum != null)
-              SongsScreen(
-                album: navigation.selectedAlbum!,
-                onBack: () => navigationNotifier.pop(),
-              ),
-
-            if (navigation.currentPage == PageType.genreDetail &&
-                navigation.selectedGenre != null)
-              GenreDetailScreen(
-                genreName: navigation.selectedGenre!,
-                onBack: () => navigationNotifier.pop(),
-              ),
-
-            if (navigation.currentPage == PageType.playlistDetail &&
-                navigation.selectedPlaylist != null)
-              PlaylistDetailScreen(
-                playlist: navigation.selectedPlaylist!,
-                onBack: () => navigationNotifier.pop(),
-              ),
-
-            if (navigation.currentPage == PageType.searchResults &&
-                navigation.searchQuery != null)
-              SearchResultsScreen(
-                query: navigation.searchQuery!,
-                onBack: () => navigationNotifier.pop(),
-              ),
-
-            // MiniPlayer - show on all pages except player page
-            if (navigation.currentPage != PageType.player)
-              const Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: MiniPlayer(),
-              ),
-          ],
-        ),
-        // Only show bottom navigation bar on main pages
-        bottomNavigationBar: _shouldShowBottomNav(navigation.currentPage)
+        body: isDesktop
+            ? _buildDesktopLayout(navigation, navigationNotifier)
+            : _buildMobileLayout(navigation, navigationNotifier),
+        // Only show bottom navigation bar on mobile main pages
+        bottomNavigationBar: !isDesktop && _shouldShowBottomNav(navigation.currentPage)
             ? BottomNavigationBar(
                 currentIndex: _getBottomNavIndex(navigation.currentPage),
                 onTap: (index) => _onBottomNavTap(index, navigationNotifier),
@@ -426,6 +381,165 @@ class _MainScreenState extends ConsumerState<MainScreen> with WindowListener {
               )
             : null,
       ),
+    );
+  }
+
+  Widget _buildDesktopLayout(NavigationState navigation, NavigationNotifier navigationNotifier) {
+    final isExpanded = ref.watch(desktopNavExpandedProvider);
+
+    return Row(
+      children: [
+        // Left navigation rail
+        NavigationRail(
+          extended: isExpanded,
+          minExtendedWidth: 200,
+          selectedIndex: _getBottomNavIndex(navigation.currentPage),
+          onDestinationSelected: (index) => _onBottomNavTap(index, navigationNotifier),
+          leading: IconButton(
+            icon: Icon(isExpanded ? Icons.menu_open : Icons.menu),
+            onPressed: () {
+              ref.read(desktopNavExpandedProvider.notifier).setExpanded(!isExpanded);
+            },
+          ),
+          destinations: const [
+            NavigationRailDestination(
+              icon: Icon(Icons.explore_outlined),
+              selectedIcon: Icon(Icons.explore),
+              label: Text('发现'),
+            ),
+            NavigationRailDestination(
+              icon: Icon(Icons.library_music_outlined),
+              selectedIcon: Icon(Icons.library_music),
+              label: Text('音乐库'),
+            ),
+            NavigationRailDestination(
+              icon: Icon(Icons.favorite_outline),
+              selectedIcon: Icon(Icons.favorite),
+              label: Text('收藏'),
+            ),
+            NavigationRailDestination(
+              icon: Icon(Icons.play_circle_outline),
+              selectedIcon: Icon(Icons.play_circle),
+              label: Text('播放'),
+            ),
+            NavigationRailDestination(
+              icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings),
+              label: Text('设置'),
+            ),
+          ],
+        ),
+        // Vertical divider
+        const VerticalDivider(thickness: 1, width: 1),
+        // Main content area
+        Expanded(
+          child: Stack(
+            children: [
+              // Main page content
+              _buildMainContent(navigation.currentPage),
+
+              // Sub-pages (Album/Songs) as overlay
+              if (navigation.currentPage == PageType.album &&
+                  navigation.selectedArtist != null)
+                AlbumScreen(
+                  artist: navigation.selectedArtist!,
+                  onBack: () => navigationNotifier.pop(),
+                ),
+
+              if (navigation.currentPage == PageType.songs &&
+                  navigation.selectedAlbum != null)
+                SongsScreen(
+                  album: navigation.selectedAlbum!,
+                  onBack: () => navigationNotifier.pop(),
+                ),
+
+              if (navigation.currentPage == PageType.genreDetail &&
+                  navigation.selectedGenre != null)
+                GenreDetailScreen(
+                  genreName: navigation.selectedGenre!,
+                  onBack: () => navigationNotifier.pop(),
+                ),
+
+              if (navigation.currentPage == PageType.playlistDetail &&
+                  navigation.selectedPlaylist != null)
+                PlaylistDetailScreen(
+                  playlist: navigation.selectedPlaylist!,
+                  onBack: () => navigationNotifier.pop(),
+                ),
+
+              if (navigation.currentPage == PageType.searchResults &&
+                  navigation.searchQuery != null)
+                SearchResultsScreen(
+                  query: navigation.searchQuery!,
+                  onBack: () => navigationNotifier.pop(),
+                ),
+
+              // MiniPlayer - show on all pages except player page
+              if (navigation.currentPage != PageType.player)
+                const Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: MiniPlayer(),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout(NavigationState navigation, NavigationNotifier navigationNotifier) {
+    return Stack(
+      children: [
+        // Main page content
+        _buildMainContent(navigation.currentPage),
+
+        // Sub-pages (Album/Songs) as overlay
+        if (navigation.currentPage == PageType.album &&
+            navigation.selectedArtist != null)
+          AlbumScreen(
+            artist: navigation.selectedArtist!,
+            onBack: () => navigationNotifier.pop(),
+          ),
+
+        if (navigation.currentPage == PageType.songs &&
+            navigation.selectedAlbum != null)
+          SongsScreen(
+            album: navigation.selectedAlbum!,
+            onBack: () => navigationNotifier.pop(),
+          ),
+
+        if (navigation.currentPage == PageType.genreDetail &&
+            navigation.selectedGenre != null)
+          GenreDetailScreen(
+            genreName: navigation.selectedGenre!,
+            onBack: () => navigationNotifier.pop(),
+          ),
+
+        if (navigation.currentPage == PageType.playlistDetail &&
+            navigation.selectedPlaylist != null)
+          PlaylistDetailScreen(
+            playlist: navigation.selectedPlaylist!,
+            onBack: () => navigationNotifier.pop(),
+          ),
+
+        if (navigation.currentPage == PageType.searchResults &&
+            navigation.searchQuery != null)
+          SearchResultsScreen(
+            query: navigation.searchQuery!,
+            onBack: () => navigationNotifier.pop(),
+          ),
+
+        // MiniPlayer - show on all pages except player page
+        if (navigation.currentPage != PageType.player)
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: MiniPlayer(),
+          ),
+      ],
     );
   }
 
