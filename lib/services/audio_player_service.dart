@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
@@ -23,12 +24,18 @@ class AudioPlayerService {
   final Dio _dio = Dio();
 
   final List<Song> _queue = [];
+  List<Song> _originalQueue = []; // Backup of original queue order for shuffle toggle
   int _currentIndex = -1;
   StreamSubscription? _positionSubscription;
+  bool _shuffleModeEnabled = false;
   
   // Stream controller for queue changes
   final _queueChangeController = StreamController<void>.broadcast();
   Stream<void> get queueChangeStream => _queueChangeController.stream;
+
+  // Stream controller for shuffle mode state
+  final _shuffleModeController = StreamController<bool>.broadcast();
+  Stream<bool> get shuffleModeStateStream => _shuffleModeController.stream;
 
   // Lock to prevent concurrent playSong calls
   final _playLock = Lock();
@@ -206,25 +213,9 @@ class AudioPlayerService {
       final currentSong = _queue[_currentIndex];
       _logger.info('Auto-advance target: ${currentSong.title}');
 
-      if (Platform.isWindows) {
-        // Windows: Use setAudioSource for reliable switching
-        _logger.info('Windows auto-advance: Using setAudioSource');
-        await _playSongWithSetAudioSource(currentSong);
-      } else {
-        // Android: Use seekToNext for ConcatenatingAudioSource
-        await _player.seekToNext();
-        
-        // Update currently playing song ID
-        _currentlyPlayingSongId = currentSong.id;
-
-        // Update UI state
-        if (onSongChanged != null) {
-          onSongChanged!(currentSong);
-        }
-
-        // Update media metadata
-        _updateMediaMetadataForCurrentSong();
-      }
+      // Use our own queue management for both platforms to support shuffle
+      _logger.info('Auto-advance: Using setAudioSource');
+      await _playSongWithSetAudioSource(currentSong);
 
       // Pre-cache more songs after switching
       _preCacheNextSongsAsync(3);
@@ -509,9 +500,37 @@ class AudioPlayerService {
     _hasTriggeredCompletion = false;
     _lastCompletionTime = null;
     
+    // Save original queue order for shuffle toggle
+    _originalQueue = List<Song>.from(songs);
+    
     _queue.clear();
     _queue.addAll(songs);
-    _currentIndex = startIndex;
+    
+    // If shuffle mode is enabled, shuffle the new queue
+    if (_shuffleModeEnabled) {
+      final currentSong = _queue[startIndex];
+      
+      // Shuffle using Fisher-Yates algorithm
+      final random = Random();
+      for (var i = _queue.length - 1; i > 0; i--) {
+        final j = random.nextInt(i + 1);
+        final temp = _queue[i];
+        _queue[i] = _queue[j];
+        _queue[j] = temp;
+      }
+      
+      // Move current song to position 0
+      final currentIndexInShuffled = _queue.indexWhere((s) => s.id == currentSong.id);
+      if (currentIndexInShuffled > 0) {
+        _queue.removeAt(currentIndexInShuffled);
+        _queue.insert(0, currentSong);
+      }
+      
+      _currentIndex = 0;
+      _logger.info('New queue shuffled: ${_queue.length} songs, current song moved to position 0');
+    } else {
+      _currentIndex = startIndex;
+    }
 
     // Notify listeners
     _queueChangeController.add(null);
@@ -691,38 +710,13 @@ class AudioPlayerService {
     // Increment callId to invalidate any pending playQueue operations
     final callId = ++_playQueueCallId;
     _lastPlayQueueCallId = callId;
-    
+
     if (_currentIndex < _queue.length - 1) {
       _currentIndex++;
       final currentSong = _queue[_currentIndex];
 
-      if (Platform.isWindows) {
-        // Windows: Use setAudioSource for reliable switching
-        await _playSongWithSetAudioSource(currentSong);
-      } else {
-        // Android: Use seekToNext for ConcatenatingAudioSource
-        await _player.seekToNext();
-
-        // Update currently playing song ID
-        _currentlyPlayingSongId = currentSong.id;
-
-        // Update UI state
-        if (onSongChanged != null) {
-          onSongChanged!(currentSong);
-        }
-
-        // Update media metadata
-        final coverArtUrl = currentSong.coverArt != null
-            ? _apiClient.getCoverArtUrl(currentSong.coverArt!, itemId: currentSong.albumId)
-            : null;
-        await _mediaService.updateMetadata(
-          title: currentSong.title,
-          artist: currentSong.artistName,
-          album: currentSong.albumName,
-          artUri: coverArtUrl,
-          duration: currentSong.duration != null ? Duration(seconds: currentSong.duration!) : null,
-        );
-      }
+      // Use our own queue management for both platforms to support shuffle
+      await _playSongWithSetAudioSource(currentSong);
     }
   }
 
@@ -730,38 +724,13 @@ class AudioPlayerService {
     // Increment callId to invalidate any pending playQueue operations
     final callId = ++_playQueueCallId;
     _lastPlayQueueCallId = callId;
-    
+
     if (_currentIndex > 0) {
       _currentIndex--;
       final currentSong = _queue[_currentIndex];
 
-      if (Platform.isWindows) {
-        // Windows: Use setAudioSource for reliable switching
-        await _playSongWithSetAudioSource(currentSong);
-      } else {
-        // Android: Use seekToPrevious for ConcatenatingAudioSource
-        await _player.seekToPrevious();
-
-        // Update currently playing song ID
-        _currentlyPlayingSongId = currentSong.id;
-
-        // Update UI state
-        if (onSongChanged != null) {
-          onSongChanged!(currentSong);
-        }
-
-        // Update media metadata
-        final coverArtUrl = currentSong.coverArt != null
-            ? _apiClient.getCoverArtUrl(currentSong.coverArt!, itemId: currentSong.albumId)
-            : null;
-        await _mediaService.updateMetadata(
-          title: currentSong.title,
-          artist: currentSong.artistName,
-          album: currentSong.albumName,
-          artUri: coverArtUrl,
-          duration: currentSong.duration != null ? Duration(seconds: currentSong.duration!) : null,
-        );
-      }
+      // Use our own queue management for both platforms to support shuffle
+      await _playSongWithSetAudioSource(currentSong);
     }
   }
 
@@ -959,15 +928,87 @@ class AudioPlayerService {
 
   LoopMode get currentLoopMode => _player.loopMode;
 
-  // Shuffle mode control
+  // Shuffle mode control with custom queue management
   Future<void> setShuffleModeEnabled(bool enabled) async {
     _logger.debug('Setting shuffle mode to: $enabled');
+    
+    if (_queue.isEmpty) {
+      _shuffleModeEnabled = enabled;
+      await _player.setShuffleModeEnabled(enabled);
+      return;
+    }
+    
+    if (enabled == _shuffleModeEnabled) {
+      return; // No change needed
+    }
+    
+    final currentSong = _currentIndex >= 0 && _currentIndex < _queue.length
+        ? _queue[_currentIndex]
+        : null;
+    
+    if (enabled) {
+      // Enable shuffle: save original order and shuffle queue
+      _originalQueue = List<Song>.from(_queue);
+      
+      // Shuffle the queue using Fisher-Yates algorithm
+      final random = Random();
+      for (var i = _queue.length - 1; i > 0; i--) {
+        final j = random.nextInt(i + 1);
+        final temp = _queue[i];
+        _queue[i] = _queue[j];
+        _queue[j] = temp;
+      }
+      
+      // Move current song to the beginning of the shuffled queue
+      if (currentSong != null) {
+        final currentIndexInShuffled = _queue.indexWhere((s) => s.id == currentSong.id);
+        if (currentIndexInShuffled > 0) {
+          _queue.removeAt(currentIndexInShuffled);
+          _queue.insert(0, currentSong);
+        }
+      }
+      
+      _currentIndex = 0;
+      _logger.info('Queue shuffled: ${_queue.length} songs, current song moved to position 0');
+    } else {
+      // Disable shuffle: restore original order
+      if (_originalQueue.isNotEmpty) {
+        _queue.clear();
+        _queue.addAll(_originalQueue);
+        
+        // Find current song position in original queue
+        if (currentSong != null) {
+          _currentIndex = _queue.indexWhere((s) => s.id == currentSong.id);
+          if (_currentIndex < 0) {
+            _currentIndex = 0;
+          }
+        } else {
+          _currentIndex = 0;
+        }
+        
+        _logger.info('Queue restored to original order: ${_queue.length} songs, current index: $_currentIndex');
+      }
+    }
+    
+    _shuffleModeEnabled = enabled;
+    _shuffleModeController.add(enabled);
     await _player.setShuffleModeEnabled(enabled);
+    
+    // Notify queue change listeners
+    _queueChangeController.add(null);
+    
+    // Update media service queue
+    await _mediaService.updateQueue(_queue, _currentIndex, getArtUri: (song) {
+      if (song.coverArt != null) {
+        return _apiClient.getCoverArtUrl(song.coverArt!, itemId: song.albumId);
+      }
+      return null;
+    });
   }
 
   Stream<bool> get shuffleModeEnabledStream => _player.shuffleModeEnabledStream;
 
-  bool get shuffleModeEnabled => _player.shuffleModeEnabled;
+  bool get shuffleModeEnabled => _shuffleModeEnabled;
 
   /// Set playback speed (0.5x to 2.0x)
   Future<void> setSpeed(double speed) async {
@@ -1153,7 +1194,7 @@ class AudioPlayerService {
           title: title ?? '未知歌曲',
           artist: artist ?? '未知艺术家',
           artUri: coverArt != null
-              ? Uri.parse(_apiClient.getCoverArtUrl(coverArt, itemId: ''))
+              ? Uri.parse(_apiClient.getCoverArtUrl(coverArt))
               : null,
           duration: duration != null
               ? Duration(seconds: duration)
@@ -1214,6 +1255,7 @@ class AudioPlayerService {
     _logger.info('Disposing AudioPlayerService');
     _positionSubscription?.cancel();
     await _queueChangeController.close();
+    await _shuffleModeController.close();
     await _mediaService.dispose();
     await _player.dispose();
   }
