@@ -119,6 +119,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final albumId = ref.watch(
       currentSongProvider.select((song) => song?.albumId),
     );
+    final colorTheme = ref.watch(colorThemeProvider);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -253,7 +254,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                             Slider(
                               value: validPosition,
                               max: validDuration,
-                              activeColor: const Color(0xFF6B8DD6),
+                              activeColor: colorTheme.accentColor,
                               inactiveColor: Colors.white.withAlpha(51),
                               onChanged: (value) {},
                               onChangeEnd: (value) {
