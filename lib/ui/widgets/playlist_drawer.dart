@@ -15,6 +15,7 @@ class _PlaylistDrawerState extends ConsumerState<PlaylistDrawer> {
   @override
   Widget build(BuildContext context) {
     final audioService = ref.watch(audioPlayerServiceProvider);
+    final colorTheme = ref.watch(colorThemeProvider);
     
     // Use StreamBuilder to listen for queue changes
     return StreamBuilder<void>(
@@ -106,7 +107,7 @@ class _PlaylistDrawerState extends ConsumerState<PlaylistDrawer> {
                           showDialog(
                             context: context,
                             builder: (context) => AlertDialog(
-                              backgroundColor: const Color(0xFF1E293B),
+                              backgroundColor: Theme.of(context).colorScheme.surface,
                               title: const Text('清空队列'),
                               content: const Text('请选择清空方式：'),
                               actions: [
@@ -180,7 +181,7 @@ class _PlaylistDrawerState extends ConsumerState<PlaylistDrawer> {
                             '${index + 1}',
                             style: TextStyle(
                               color: isCurrent 
-                                  ? const Color(0xFF6B8DD6) 
+                                  ? colorTheme.accentColor 
                                   : Colors.white54,
                               fontWeight: isCurrent 
                                   ? FontWeight.bold 
@@ -191,7 +192,7 @@ class _PlaylistDrawerState extends ConsumerState<PlaylistDrawer> {
                             song.title,
                             style: TextStyle(
                               color: isCurrent 
-                                  ? const Color(0xFF6B8DD6) 
+                                  ? colorTheme.accentColor 
                                   : Colors.white,
                               fontWeight: isCurrent 
                                   ? FontWeight.w600 
@@ -206,8 +207,8 @@ class _PlaylistDrawerState extends ConsumerState<PlaylistDrawer> {
                             ),
                           ),
                           trailing: isCurrent
-                              ? const AudioWaveform(
-                                  color: Color(0xFF6B8DD6),
+                              ? AudioWaveform(
+                                  color: colorTheme.accentColor,
                                   height: 20,
                                   width: 24,
                                   barCount: 4,

@@ -7,7 +7,7 @@ import '../../providers/sleep_timer_provider.dart';
 void showPlayerMoreMenu(BuildContext context, WidgetRef ref, {bool showVolumeEntry = false}) {
   showModalBottomSheet(
     context: context,
-    backgroundColor: const Color(0xFF1E293B),
+    backgroundColor: Theme.of(context).colorScheme.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
@@ -26,6 +26,7 @@ class _PlayerMoreMenuContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorTheme = ref.watch(colorThemeProvider);
     final sleepTimerState = ref.watch(sleepTimerProvider);
     final speedAsync = ref.watch(speedProvider);
 
@@ -91,14 +92,14 @@ class _PlayerMoreMenuContent extends ConsumerWidget {
           ListTile(
             leading: Icon(
               Icons.timer,
-              color: sleepTimerState.isActive ? const Color(0xFF6B8DD6) : null,
+              color: sleepTimerState.isActive ? colorTheme.accentColor : null,
             ),
             title: const Text('定时关闭'),
             trailing: Text(
               sleepTimerState.displayText,
               style: TextStyle(
                 color: sleepTimerState.isActive
-                    ? const Color(0xFF6B8DD6)
+                    ? colorTheme.accentColor
                     : Colors.white54,
               ),
             ),
@@ -121,11 +122,12 @@ class _PlayerMoreMenuContent extends ConsumerWidget {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
+        final colorTheme = ref.read(colorThemeProvider);
         return SafeArea(
           child: Container(
             padding: const EdgeInsets.all(24),
@@ -155,10 +157,10 @@ class _PlayerMoreMenuContent extends ConsumerWidget {
                       children: [
                         Text(
                           '${(volume * 100).toInt()}%',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF6B8DD6),
+                            color: colorTheme.accentColor,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -167,7 +169,7 @@ class _PlayerMoreMenuContent extends ConsumerWidget {
                           min: 0,
                           max: 1,
                           divisions: 100,
-                          activeColor: const Color(0xFF6B8DD6),
+                          activeColor: colorTheme.accentColor,
                           inactiveColor: Colors.white.withAlpha(26),
                           onChanged: (value) {
                             audioService.setVolume(value);
@@ -194,11 +196,12 @@ class _PlayerMoreMenuContent extends ConsumerWidget {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
+        final colorTheme = ref.read(colorThemeProvider);
         return SafeArea(
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -230,12 +233,12 @@ class _PlayerMoreMenuContent extends ConsumerWidget {
                     title: Text(
                       '${speed.toStringAsFixed(speed == speed.roundToDouble() ? 1 : 2)}x',
                       style: TextStyle(
-                        color: isSelected ? const Color(0xFF6B8DD6) : Colors.white,
+                        color: isSelected ? colorTheme.accentColor : Colors.white,
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                     trailing: isSelected
-                        ? const Icon(Icons.check, color: Color(0xFF6B8DD6))
+                        ? Icon(Icons.check, color: colorTheme.accentColor)
                         : null,
                     onTap: () {
                       audioService.setSpeed(speed);
@@ -263,11 +266,12 @@ class _PlayerMoreMenuContent extends ConsumerWidget {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
+        final colorTheme = ref.read(colorThemeProvider);
         return SafeArea(
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -312,11 +316,11 @@ class _PlayerMoreMenuContent extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: Row(
                       children: [
-                        const Icon(Icons.timer, size: 16, color: Color(0xFF6B8DD6)),
+                        Icon(Icons.timer, size: 16, color: colorTheme.accentColor),
                         const SizedBox(width: 8),
                         Text(
                           '当前: ${currentState.displayText}',
-                          style: const TextStyle(color: Color(0xFF6B8DD6)),
+                          style: TextStyle(color: colorTheme.accentColor),
                         ),
                       ],
                     ),
