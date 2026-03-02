@@ -180,11 +180,16 @@ class SettingsScreen extends ConsumerWidget {
           
           // System Integration
           _buildSectionHeader('系统集成'),
-          _buildListTile(
-            '个性化主题',
-            '深海蓝',
-            Icons.palette,
-            () {},
+          Consumer(
+            builder: (context, ref, child) {
+              final colorTheme = ref.watch(colorThemeProvider);
+              return _buildListTile(
+                '个性化主题',
+                colorTheme.name,
+                Icons.palette,
+                () => _showColorThemePicker(context, ref),
+              );
+            },
           ),
           Consumer(
             builder: (context, ref, child) {
@@ -982,6 +987,77 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  /// Show color theme picker dialog
+  void _showColorThemePicker(BuildContext context, WidgetRef ref) {
+    final currentTheme = ref.read(colorThemeProvider);
+    
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          title: const Text('选择主题'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: ColorTheme.values.length,
+              itemBuilder: (context, index) {
+                final theme = ColorTheme.values[index];
+                final themeData = AppColorTheme.fromEnum(theme);
+                final isSelected = themeData.name == currentTheme.name;
+                
+                return ListTile(
+                  leading: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: themeData.accentColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isSelected 
+                            ? Colors.white 
+                            : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                  title: Text(themeData.name),
+                  subtitle: Text(
+                    theme == ColorTheme.deepBlue ? '默认' : '',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  trailing: isSelected 
+                      ? const Icon(Icons.check, color: Colors.white)
+                      : null,
+                  onTap: () async {
+                    await ref.read(colorThemeProvider.notifier).setTheme(theme);
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      showTopSnackBar(
+                        context,
+                        message: '已切换至${themeData.name}',
+                      );
+                    }
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
