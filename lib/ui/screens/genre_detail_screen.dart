@@ -70,6 +70,8 @@ class _GenreDetailScreenState extends ConsumerState<GenreDetailScreen> {
       return const Center(child: Text('该流派暂无歌曲'));
     }
 
+    final colorTheme = ref.watch(colorThemeProvider);
+
     return CustomScrollView(
       controller: _scrollController,
       slivers: [
@@ -77,8 +79,8 @@ class _GenreDetailScreenState extends ConsumerState<GenreDetailScreen> {
         SliverAppBar(
           pinned: true,
           expandedHeight: 0,
-          backgroundColor: _isScrolled 
-              ? const Color(0xFF1E293B) 
+          backgroundColor: _isScrolled
+              ? colorTheme.backgroundColor
               : Colors.transparent,
           elevation: _isScrolled ? 4 : 0,
           leading: IconButton(
@@ -113,7 +115,7 @@ class _GenreDetailScreenState extends ConsumerState<GenreDetailScreen> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF6B8DD6),
+                    color: colorTheme.accentColor,
                   ),
                 ),
                 const Spacer(),
@@ -149,6 +151,7 @@ class _GenreDetailScreenState extends ConsumerState<GenreDetailScreen> {
   }
 
   Widget _buildGenreHeader(BuildContext context, WidgetRef ref, List<Song> songs) {
+    final colorTheme = ref.watch(colorThemeProvider);
     return Container(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -160,8 +163,8 @@ class _GenreDetailScreenState extends ConsumerState<GenreDetailScreen> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFF6B8DD6),
-                  const Color(0xFF8B5CF6),
+                  colorTheme.accentColor,
+                  colorTheme.secondaryAccentColor,
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -169,7 +172,7 @@ class _GenreDetailScreenState extends ConsumerState<GenreDetailScreen> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF6B8DD6).withAlpha(51),
+                  color: colorTheme.accentColor.withAlpha(51),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -219,7 +222,7 @@ class _GenreDetailScreenState extends ConsumerState<GenreDetailScreen> {
                 icon: const Icon(Icons.play_arrow),
                 label: const Text('播放全部'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6B8DD6),
+                  backgroundColor: colorTheme.accentColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -241,7 +244,7 @@ class _GenreDetailScreenState extends ConsumerState<GenreDetailScreen> {
                 icon: const Icon(Icons.playlist_add),
                 label: const Text('添加到队列'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2D3B4E),
+                  backgroundColor: colorTheme.surfaceColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -259,6 +262,7 @@ class _GenreDetailScreenState extends ConsumerState<GenreDetailScreen> {
   Widget _buildSongTile(BuildContext context, WidgetRef ref, Song song, int index) {
     final isCurrentSong = ref.watch(currentSongProvider)?.id == song.id;
     final isPlaying = ref.watch(isPlayingProvider);
+    final colorTheme = ref.watch(colorThemeProvider);
 
     return ListTile(
       leading: Row(
@@ -269,13 +273,13 @@ class _GenreDetailScreenState extends ConsumerState<GenreDetailScreen> {
             width: 32,
             alignment: Alignment.center,
             child: isCurrentSong && isPlaying
-                ? const Icon(Icons.equalizer, color: Color(0xFF6B8DD6), size: 20)
+                ? Icon(Icons.equalizer, color: colorTheme.accentColor, size: 20)
                 : Text(
                     '${index + 1}',
                     style: TextStyle(
                       fontSize: 14,
                       color: isCurrentSong
-                          ? const Color(0xFF6B8DD6)
+                          ? colorTheme.accentColor
                           : Colors.white.withAlpha(128),
                       fontWeight: isCurrentSong ? FontWeight.bold : FontWeight.normal,
                     ),
@@ -297,13 +301,13 @@ class _GenreDetailScreenState extends ConsumerState<GenreDetailScreen> {
               placeholder: Container(
                 width: 50,
                 height: 50,
-                color: const Color(0xFF2D3B4E),
+                color: colorTheme.surfaceColor,
                 child: const Icon(Icons.music_note, size: 30, color: Colors.white54),
               ),
               errorWidget: Container(
                 width: 50,
                 height: 50,
-                color: const Color(0xFF2D3B4E),
+                color: colorTheme.surfaceColor,
                 child: const Icon(Icons.music_note, size: 30, color: Colors.white54),
               ),
             ),
@@ -314,7 +318,7 @@ class _GenreDetailScreenState extends ConsumerState<GenreDetailScreen> {
         song.title,
         style: TextStyle(
           fontWeight: isCurrentSong ? FontWeight.w600 : FontWeight.normal,
-          color: isCurrentSong ? const Color(0xFF6B8DD6) : Colors.white,
+          color: isCurrentSong ? colorTheme.accentColor : Colors.white,
         ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
@@ -339,9 +343,10 @@ class _GenreDetailScreenState extends ConsumerState<GenreDetailScreen> {
   }
 
   void _showSongOptions(BuildContext context, WidgetRef ref, Song song) {
+    final colorTheme = ref.read(colorThemeProvider);
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: colorTheme.backgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -374,7 +379,7 @@ class _GenreDetailScreenState extends ConsumerState<GenreDetailScreen> {
                       placeholder: Container(
                         width: 50,
                         height: 50,
-                        color: const Color(0xFF2D3B4E),
+                        color: colorTheme.surfaceColor,
                         child: const Icon(Icons.music_note, color: Colors.white54),
                       ),
                     ),

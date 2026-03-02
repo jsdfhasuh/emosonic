@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/utils/image_cache_manager.dart';
 import '../../data/models/models.dart';
 import '../../providers/providers.dart';
+import '../../providers/color_theme_provider.dart';
 
 class SearchResultsScreen extends ConsumerStatefulWidget {
   final String query;
@@ -98,6 +99,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
         ),
       );
     }
+    final colorTheme = ref.watch(colorThemeProvider);
     return ListView.builder(
       itemCount: artists.length,
       itemBuilder: (context, index) {
@@ -118,13 +120,13 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
               placeholder: Container(
                 width: 48,
                 height: 48,
-                color: const Color(0xFF2D3B4E),
+                color: colorTheme.surfaceColor,
                 child: const Icon(Icons.person, color: Colors.white54),
               ),
               errorWidget: Container(
                 width: 48,
                 height: 48,
-                color: const Color(0xFF2D3B4E),
+                color: colorTheme.surfaceColor,
                 child: const Icon(Icons.person, color: Colors.white54),
               ),
             ),
@@ -152,6 +154,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
         ),
       );
     }
+    final colorTheme = ref.watch(colorThemeProvider);
     return ListView.builder(
       itemCount: albums.length,
       itemBuilder: (context, index) {
@@ -172,13 +175,13 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
               placeholder: Container(
                 width: 48,
                 height: 48,
-                color: const Color(0xFF2D3B4E),
+                color: colorTheme.surfaceColor,
                 child: const Icon(Icons.album, color: Colors.white54),
               ),
               errorWidget: Container(
                 width: 48,
                 height: 48,
-                color: const Color(0xFF2D3B4E),
+                color: colorTheme.surfaceColor,
                 child: const Icon(Icons.album, color: Colors.white54),
               ),
             ),
@@ -206,6 +209,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
         ),
       );
     }
+    final colorTheme = ref.watch(colorThemeProvider);
     return ListView.builder(
       itemCount: songs.length,
       itemBuilder: (context, index) {
@@ -226,13 +230,13 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
               placeholder: Container(
                 width: 48,
                 height: 48,
-                color: const Color(0xFF2D3B4E),
+                color: colorTheme.surfaceColor,
                 child: const Icon(Icons.music_note, color: Colors.white54),
               ),
               errorWidget: Container(
                 width: 48,
                 height: 48,
-                color: const Color(0xFF2D3B4E),
+                color: colorTheme.surfaceColor,
                 child: const Icon(Icons.music_note, color: Colors.white54),
               ),
             ),

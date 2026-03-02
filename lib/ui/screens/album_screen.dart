@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/utils/image_cache_manager.dart';
 import '../../core/utils/logger.dart';
+import '../../providers/color_theme_provider.dart';
 import '../../data/models/models.dart';
 import '../../providers/providers.dart';
 import 'songs_screen.dart';
@@ -83,6 +84,7 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
       );
     }
 
+    final colorTheme = ref.watch(colorThemeProvider);
     return ListView.builder(
       itemCount: albums.length,
       itemBuilder: (context, index) {
@@ -101,13 +103,13 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
               placeholder: Container(
                 width: 50,
                 height: 50,
-                color: const Color(0xFF2D3B4E),
+                color: colorTheme.surfaceColor,
                 child: const Icon(Icons.album, size: 30, color: Colors.white54),
               ),
               errorWidget: Container(
                 width: 50,
                 height: 50,
-                color: const Color(0xFF2D3B4E),
+                color: colorTheme.surfaceColor,
                 child: const Icon(Icons.album, size: 30, color: Colors.white54),
               ),
             ),

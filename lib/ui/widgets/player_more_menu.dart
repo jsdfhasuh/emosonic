@@ -77,7 +77,7 @@ class _PlayerMoreMenuContent extends ConsumerWidget {
             trailing: speedAsync.when(
               data: (speed) => Text(
                 '${speed.toStringAsFixed(1)}x',
-                style: const TextStyle(color: Color(0xFF6B8DD6)),
+                style: TextStyle(color: colorTheme.accentColor),
               ),
               loading: () => const Text('1.0x'),
               error: (_, __) => const Text('1.0x'),

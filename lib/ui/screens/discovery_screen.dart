@@ -9,6 +9,7 @@ class DiscoveryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorTheme = ref.watch(colorThemeProvider);
     return Scaffold(
       body: SafeArea(
         child: CustomScrollView(
@@ -17,7 +18,7 @@ class DiscoveryScreen extends ConsumerWidget {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: _buildSearchBar(context, ref),
+                child: _buildSearchBar(context, ref, colorTheme),
               ),
             ),
             // Latest Albums
@@ -85,13 +86,13 @@ class DiscoveryScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSearchBar(BuildContext context, WidgetRef ref) {
+  Widget _buildSearchBar(BuildContext context, WidgetRef ref, AppColorTheme colorTheme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B).withAlpha(204),
+            color: colorTheme.backgroundColor.withAlpha(204),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: Colors.white.withAlpha(26),
@@ -126,6 +127,7 @@ class DiscoveryScreen extends ConsumerWidget {
         Consumer(
           builder: (context, ref, child) {
             final searchHistory = ref.watch(searchHistoryProvider);
+            final colorTheme = ref.watch(colorThemeProvider);
             if (searchHistory.isEmpty) return const SizedBox.shrink();
 
             return Container(
@@ -169,7 +171,7 @@ class DiscoveryScreen extends ConsumerWidget {
                       return ActionChip(
                         label: Text(query),
                         labelStyle: const TextStyle(fontSize: 13),
-                        backgroundColor: const Color(0xFF1E293B),
+                        backgroundColor: colorTheme.backgroundColor,
                         side: BorderSide(color: Colors.white.withAlpha(26)),
                         onPressed: () {
                           ref.read(navigationProvider.notifier).pushSearchResults(query);
@@ -201,6 +203,7 @@ class DiscoveryScreen extends ConsumerWidget {
   }
 
   Widget _buildNewestAlbumsCarousel(BuildContext context, WidgetRef ref, List<Album> albums) {
+    final colorTheme = ref.watch(colorThemeProvider);
     return ListView.builder(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -227,8 +230,8 @@ class DiscoveryScreen extends ConsumerWidget {
                     width: 140,
                     height: 140,
                     cacheKey: 'album_${album.id}',
-                    placeholder: _buildPlaceholder(140),
-                    errorWidget: _buildPlaceholder(140),
+                    placeholder: _buildPlaceholder(140, colorTheme: colorTheme),
+                    errorWidget: _buildPlaceholder(140, colorTheme: colorTheme),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -262,6 +265,7 @@ class DiscoveryScreen extends ConsumerWidget {
   }
 
   Widget _buildHotRecommendations(BuildContext context, WidgetRef ref, List<Album> albums) {
+    final colorTheme = ref.watch(colorThemeProvider);
     if (albums.isEmpty) {
       return const SizedBox(
         height: 80,
@@ -281,7 +285,7 @@ class DiscoveryScreen extends ConsumerWidget {
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E293B).withAlpha(204),
+              color: colorTheme.backgroundColor.withAlpha(204),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: Colors.white.withAlpha(26),
@@ -298,8 +302,8 @@ class DiscoveryScreen extends ConsumerWidget {
                   width: 56,
                   height: 56,
                   cacheKey: 'album_${album.id}',
-                  placeholder: _buildPlaceholder(56),
-                  errorWidget: _buildPlaceholder(56),
+                  placeholder: _buildPlaceholder(56, colorTheme: colorTheme),
+                  errorWidget: _buildPlaceholder(56, colorTheme: colorTheme),
                 ),
               ),
               title: Text(
@@ -315,7 +319,7 @@ class DiscoveryScreen extends ConsumerWidget {
                 ),
               ),
               trailing: IconButton(
-                icon: const Icon(Icons.play_circle, color: Color(0xFF6B8DD6)),
+                icon: Icon(Icons.play_circle, color: colorTheme.accentColor),
                 onPressed: () {
                   // TODO: Play album
                 },
@@ -331,6 +335,7 @@ class DiscoveryScreen extends ConsumerWidget {
   }
 
   Widget _buildRecentlyPlayed(BuildContext context, WidgetRef ref, List<Album> albums) {
+    final colorTheme = ref.watch(colorThemeProvider);
     if (albums.isEmpty) {
       return const SizedBox(
         height: 120,
@@ -369,8 +374,8 @@ class DiscoveryScreen extends ConsumerWidget {
                     width: 120,
                     height: 120,
                     cacheKey: 'album_${album.id}',
-                    placeholder: _buildPlaceholder(120),
-                    errorWidget: _buildPlaceholder(120),
+                    placeholder: _buildPlaceholder(120, colorTheme: colorTheme),
+                    errorWidget: _buildPlaceholder(120, colorTheme: colorTheme),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -404,6 +409,7 @@ class DiscoveryScreen extends ConsumerWidget {
   }
 
   Widget _buildRandomAlbums(BuildContext context, WidgetRef ref, List<Album> albums) {
+    final colorTheme = ref.watch(colorThemeProvider);
     return ListView.builder(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -430,8 +436,8 @@ class DiscoveryScreen extends ConsumerWidget {
                     width: 120,
                     height: 120,
                     cacheKey: 'album_${album.id}',
-                    placeholder: _buildPlaceholder(120),
-                    errorWidget: _buildPlaceholder(120),
+                    placeholder: _buildPlaceholder(120, colorTheme: colorTheme),
+                    errorWidget: _buildPlaceholder(120, colorTheme: colorTheme),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -464,11 +470,11 @@ class DiscoveryScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPlaceholder(double height, {double? width}) {
+  Widget _buildPlaceholder(double height, {double? width, AppColorTheme? colorTheme}) {
     return Container(
       width: width ?? height,
       height: height,
-      color: const Color(0xFF2D3B4E),
+      color: colorTheme?.surfaceColor,
       child: Icon(
         Icons.album,
         size: height * 0.4,
