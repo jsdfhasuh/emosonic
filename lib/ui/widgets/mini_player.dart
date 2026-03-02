@@ -66,6 +66,7 @@ class MiniPlayer extends ConsumerWidget {
     final currentSong = ref.watch(currentSongProvider);
     final isPlaying = ref.watch(isPlayingProvider);
     final audioService = ref.watch(audioPlayerServiceProvider);
+    final colorTheme = ref.watch(colorThemeProvider);
     // Use Selector to listen to albumId changes for cover update
     final albumId = ref.watch(
       currentSongProvider.select((song) => song?.albumId),
@@ -83,7 +84,7 @@ class MiniPlayer extends ConsumerWidget {
         return Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B).withAlpha(242),
+            color: colorTheme.surfaceColor.withAlpha(242),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: Colors.white.withAlpha(26),
@@ -141,7 +142,7 @@ class MiniPlayer extends ConsumerWidget {
                                 painter: CircularProgressPainter(
                                   progress: progress,
                                   strokeWidth: 2,
-                                  color: const Color(0xFF6B8DD6),
+                                  color: colorTheme.accentColor,
                                 ),
                               ),
                               // Circular cover with ValueKey to force rebuild on album change
@@ -157,8 +158,8 @@ class MiniPlayer extends ConsumerWidget {
                                   width: 48,
                                   height: 48,
                                   cacheKey: 'album_${currentSong.albumId}',
-                                  placeholder: _buildPlaceholder(),
-                                  errorWidget: _buildPlaceholder(),
+                                  placeholder: _buildPlaceholder(context, ref),
+                                  errorWidget: _buildPlaceholder(context, ref),
                                 ),
                               ),
                               // Center play/pause button (transparent)
@@ -272,11 +273,12 @@ class MiniPlayer extends ConsumerWidget {
     );
   }
 
-  Widget _buildPlaceholder() {
+  Widget _buildPlaceholder(BuildContext context, WidgetRef ref) {
+    final colorTheme = ref.watch(colorThemeProvider);
     return Container(
       width: 48,
       height: 48,
-      color: const Color(0xFF2D3B4E),
+      color: colorTheme.surfaceColor,
       child: const Icon(Icons.music_note, color: Colors.white54),
     );
   }
