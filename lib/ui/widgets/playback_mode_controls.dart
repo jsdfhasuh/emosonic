@@ -10,6 +10,7 @@ class PlaybackModeControls extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final loopModeAsync = ref.watch(loopModeProvider);
     final isShuffled = ref.watch(shuffleModeProvider);
+    final colorTheme = ref.watch(colorThemeProvider);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -19,7 +20,7 @@ class PlaybackModeControls extends ConsumerWidget {
           icon: Icon(
             Icons.shuffle,
             color: isShuffled
-                ? const Color(0xFF6B8DD6)
+                ? colorTheme.accentColor
                 : Colors.white54,
           ),
           tooltip: isShuffled ? '随机播放: 开启' : '随机播放: 关闭',
@@ -58,7 +59,7 @@ class PlaybackModeControls extends ConsumerWidget {
                 icon,
                 color: loopMode == LoopMode.off 
                     ? Colors.white54 
-                    : const Color(0xFF6B8DD6),
+                    : colorTheme.accentColor,
               ),
               tooltip: tooltip,
               onPressed: () {
