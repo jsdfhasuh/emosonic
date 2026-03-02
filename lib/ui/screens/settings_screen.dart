@@ -21,12 +21,14 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         children: [
           // Server Status
-          _buildSectionHeader('服务器状态'),
+          _buildSectionHeader(context, ref, '服务器状态'),
           _buildServerStatusCard(context, ref),
           
           // Transmission and Download
-          _buildSectionHeader('传输与下载'),
+          _buildSectionHeader(context, ref, '传输与下载'),
           _buildSwitchTile(
+            context,
+            ref,
             '移动网络播放',
             '允许使用移动数据流式播放音乐',
             true,
@@ -36,6 +38,8 @@ class SettingsScreen extends ConsumerWidget {
             builder: (context, ref, child) {
               final cacheEnabled = ref.watch(audioCacheEnabledProvider);
               return _buildSwitchTile(
+                context,
+                ref,
                 '边听边存',
                 '播放时自动缓存到本地',
                 cacheEnabled,
@@ -55,6 +59,8 @@ class SettingsScreen extends ConsumerWidget {
             builder: (context, ref, child) {
               final cachePlaybackEnabled = ref.watch(audioCachePlaybackEnabledProvider);
               return _buildSwitchTile(
+                context,
+                ref,
                 '使用缓存播放',
                 '优先使用本地缓存文件播放（关闭则始终使用网络流）',
                 cachePlaybackEnabled,
@@ -85,6 +91,8 @@ class SettingsScreen extends ConsumerWidget {
             builder: (context, ref, child) {
               final cacheCoverEnabled = ref.watch(cacheCoverImageProvider);
               return _buildSwitchTile(
+                context,
+                ref,
                 '缓存歌曲封面',
                 '同时缓存歌曲封面图片（占用额外空间）',
                 cacheCoverEnabled,
@@ -109,7 +117,7 @@ class SettingsScreen extends ConsumerWidget {
 
           // Window Close Behavior (Windows only)
           if (Platform.isWindows) ...[
-            _buildSectionHeader('窗口行为'),
+            _buildSectionHeader(context, ref, '窗口行为'),
             Consumer(
               builder: (context, ref, child) {
                 final closeBehavior = ref.watch(windowCloseBehaviorProvider);
@@ -137,8 +145,10 @@ class SettingsScreen extends ConsumerWidget {
           ],
 
           // Playback Control
-          _buildSectionHeader('播放控制'),
+          _buildSectionHeader(context, ref, '播放控制'),
           _buildSwitchTile(
+            context,
+            ref,
             '循环播放',
             '播放完队列后自动重复',
             false,
@@ -148,6 +158,8 @@ class SettingsScreen extends ConsumerWidget {
             builder: (context, ref, child) {
               final autoResumeEnabled = ref.watch(autoResumePlaybackProvider);
               return _buildSwitchTile(
+                context,
+                ref,
                 '启动自动播放',
                 '应用启动时继续上次播放',
                 autoResumeEnabled,
@@ -172,6 +184,8 @@ class SettingsScreen extends ConsumerWidget {
             () {},
           ),
           _buildSwitchTile(
+            context,
+            ref,
             '音量标准化',
             '统一不同歌曲的音量',
             true,
@@ -179,7 +193,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           
           // System Integration
-          _buildSectionHeader('系统集成'),
+          _buildSectionHeader(context, ref, '系统集成'),
           Consumer(
             builder: (context, ref, child) {
               final colorTheme = ref.watch(colorThemeProvider);
@@ -220,6 +234,8 @@ class SettingsScreen extends ConsumerWidget {
             builder: (context, ref, child) {
               final cacheDisabled = ref.watch(imageCacheDisabledProvider);
               return _buildSwitchTile(
+                context,
+                ref,
                 '不使用图片缓存',
                 '每次从服务器重新加载图片',
                 cacheDisabled,
@@ -240,11 +256,11 @@ class SettingsScreen extends ConsumerWidget {
             '清除图片缓存',
             '释放本地存储空间',
             Icons.image,
-            () => _clearImageCache(context),
+            () => _clearImageCache(context, ref),
           ),
           
           // Account
-          _buildSectionHeader('账户'),
+          _buildSectionHeader(context, ref, '账户'),
           Consumer(
             builder: (context, ref, child) {
               final serverState = ref.watch(serverConfigsProvider);
@@ -263,13 +279,13 @@ class SettingsScreen extends ConsumerWidget {
             '查看日志',
             '查看应用运行日志',
             Icons.article,
-            () => _showLogsDialog(context),
+            () => _showLogsDialog(context, ref),
           ),
           _buildListTile(
             '日志等级',
             '当前: ${Logger.getLogLevel().name.toUpperCase()}',
             Icons.bug_report,
-            () => _showLogLevelDialog(context),
+            () => _showLogLevelDialog(context, ref),
           ),
           
           const SizedBox(height: 24),
@@ -323,7 +339,8 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(BuildContext context, WidgetRef ref, String title) {
+    final colorTheme = ref.watch(colorThemeProvider);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
       child: Text(
@@ -331,7 +348,7 @@ class SettingsScreen extends ConsumerWidget {
         style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: const Color(0xFF6B8DD6),
+          color: colorTheme.accentColor,
         ),
       ),
     );
@@ -341,6 +358,8 @@ class SettingsScreen extends ConsumerWidget {
     final serverState = ref.watch(serverConfigsProvider);
     final activeServer = serverState.activeServer;
     final serverCount = serverState.serverCount;
+    final colorTheme = ref.watch(colorThemeProvider);
+    final theme = Theme.of(context);
     
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -350,19 +369,19 @@ class SettingsScreen extends ConsumerWidget {
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF1E293B), Color(0xFF2D3B4E)],
+            gradient: LinearGradient(
+              colors: [theme.colorScheme.surface, colorTheme.surfaceColor],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: const Color(0xFF6B8DD6).withAlpha(51),
+              color: colorTheme.accentColor.withAlpha(51),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF6B8DD6).withAlpha(26),
+                color: colorTheme.accentColor.withAlpha(26),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -460,11 +479,14 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Widget _buildSwitchTile(
+    BuildContext context,
+    WidgetRef ref,
     String title,
     String subtitle,
     bool value,
     ValueChanged<bool> onChanged,
   ) {
+    final colorTheme = ref.watch(colorThemeProvider);
     return SwitchListTile(
       title: Text(title),
       subtitle: Text(
@@ -476,15 +498,16 @@ class SettingsScreen extends ConsumerWidget {
       ),
       value: value,
       onChanged: onChanged,
-      activeThumbColor: const Color(0xFF6B8DD6),
+      activeThumbColor: colorTheme.accentColor,
     );
   }
 
   void _showLogoutDialog(BuildContext context, WidgetRef ref) {
+    final colorTheme = ref.read(colorThemeProvider);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: colorTheme.backgroundColor,
         title: const Text('确认退出'),
         content: const Text('确定要退出当前服务器连接吗？'),
         actions: [
@@ -505,7 +528,8 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  void _showLogsDialog(BuildContext context) async {
+  void _showLogsDialog(BuildContext context, WidgetRef ref) async {
+    final colorTheme = ref.read(colorThemeProvider);
     final logPaths = await Logger.getLogPaths();
     String currentLog = '';
     String previousLog = '';
@@ -535,7 +559,7 @@ class SettingsScreen extends ConsumerWidget {
           return StatefulBuilder(
             builder: (context, setState) {
               return AlertDialog(
-                backgroundColor: const Color(0xFF1E293B),
+                backgroundColor: colorTheme.backgroundColor,
                 title: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -639,11 +663,12 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
-  void _clearImageCache(BuildContext context) async {
+  void _clearImageCache(BuildContext context, WidgetRef ref) async {
+    final colorTheme = ref.read(colorThemeProvider);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: colorTheme.backgroundColor,
         title: const Text('清除图片缓存'),
         content: const Text('确定要清除所有本地图片缓存吗？这将释放存储空间，但下次加载图片时需要重新下载。'),
         actions: [
@@ -669,7 +694,7 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  void _showLogLevelDialog(BuildContext context) {
+  void _showLogLevelDialog(BuildContext context, WidgetRef ref) {
     final levels = [
       {'name': 'DEBUG', 'level': LogLevel.debug, 'desc': '最详细，包含所有调试信息'},
       {'name': 'INFO', 'level': LogLevel.info, 'desc': '一般信息，默认级别'},
@@ -677,10 +702,12 @@ class SettingsScreen extends ConsumerWidget {
       {'name': 'ERROR', 'level': LogLevel.error, 'desc': '仅错误信息'},
     ];
 
+    final colorTheme = ref.read(colorThemeProvider);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: colorTheme.backgroundColor,
         title: const Text('设置日志等级'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -691,7 +718,7 @@ class SettingsScreen extends ConsumerWidget {
                 item['name'] as String,
                 style: TextStyle(
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? const Color(0xFF6B8DD6) : Colors.white,
+                  color: isSelected ? colorTheme.accentColor : Colors.white,
                 ),
               ),
               subtitle: Text(
@@ -702,7 +729,7 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ),
               trailing: isSelected
-                  ? const Icon(Icons.check, color: Color(0xFF6B8DD6))
+                  ? Icon(Icons.check, color: colorTheme.accentColor)
                   : null,
               onTap: () async {
                 await Logger.setLogLevel(item['level'] as LogLevel);
@@ -730,10 +757,12 @@ class SettingsScreen extends ConsumerWidget {
   void _showCacheSizeDialog(BuildContext context, WidgetRef ref, int currentSize) {
     final options = [512, 1024, 2048, 4096, 8192]; // 512MB to 8GB
 
+    final colorTheme = ref.read(colorThemeProvider);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: colorTheme.backgroundColor,
         title: const Text('选择缓存限额'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -744,7 +773,7 @@ class SettingsScreen extends ConsumerWidget {
                 '${(size / 1024).toStringAsFixed(1)} GB',
                 style: TextStyle(
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? const Color(0xFF6B8DD6) : Colors.white,
+                  color: isSelected ? colorTheme.accentColor : Colors.white,
                 ),
               ),
               subtitle: Text(
@@ -755,7 +784,7 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ),
               trailing: isSelected
-                  ? const Icon(Icons.check, color: Color(0xFF6B8DD6))
+                  ? Icon(Icons.check, color: colorTheme.accentColor)
                   : null,
               onTap: () async {
                 await ref.read(audioCacheSizeProvider.notifier).setSize(size);
@@ -787,10 +816,12 @@ class SettingsScreen extends ConsumerWidget {
       {'value': 'exit', 'label': '直接退出', 'desc': '直接退出应用'},
     ];
 
+    final colorTheme = ref.read(colorThemeProvider);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: colorTheme.backgroundColor,
         title: const Text('关闭窗口时'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -801,7 +832,7 @@ class SettingsScreen extends ConsumerWidget {
                 option['label']!,
                 style: TextStyle(
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? const Color(0xFF6B8DD6) : Colors.white,
+                  color: isSelected ? colorTheme.accentColor : Colors.white,
                 ),
               ),
               subtitle: Text(
@@ -812,7 +843,7 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ),
               trailing: isSelected
-                  ? const Icon(Icons.check, color: Color(0xFF6B8DD6))
+                  ? Icon(Icons.check, color: colorTheme.accentColor)
                   : null,
               onTap: () async {
                 await ref.read(windowCloseBehaviorProvider.notifier).setBehavior(option['value']!);
@@ -838,10 +869,11 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _showCacheManagementDialog(BuildContext context, WidgetRef ref) {
+    final colorTheme = ref.read(colorThemeProvider);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: colorTheme.backgroundColor,
         title: const Text('存储空间管理'),
         content: Consumer(
           builder: (context, ref, child) {
@@ -876,7 +908,7 @@ class SettingsScreen extends ConsumerWidget {
               final confirmed = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
-                  backgroundColor: const Color(0xFF1E293B),
+                  backgroundColor: colorTheme.backgroundColor,
                   title: const Text('确认清空'),
                   content: const Text('确定要清空所有缓存的歌曲吗？'),
                   actions: [
@@ -921,11 +953,12 @@ class SettingsScreen extends ConsumerWidget {
     }
 
     final controller = TextEditingController(text: activeServer.apiEndpoint);
+    final colorTheme = ref.read(colorThemeProvider);
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: colorTheme.backgroundColor,
         title: const Text('自定义 API 端点'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
