@@ -79,71 +79,64 @@ void main() async {
 class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
+  /// Build ThemeData from AppColorTheme
+  ThemeData _buildThemeFromColorTheme(AppColorTheme colorTheme) {
+    return ThemeData.dark().copyWith(
+      scaffoldBackgroundColor: colorTheme.backgroundColor,
+      primaryColor: colorTheme.accentColor,
+      colorScheme: ColorScheme.dark(
+        primary: colorTheme.accentColor,
+        secondary: colorTheme.secondaryAccentColor,
+        surface: colorTheme.surfaceColor,
+        onSurface: colorTheme.textPrimaryColor,
+        onPrimary: Colors.white,
+        onSecondary: Colors.white,
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: IconThemeData(color: colorTheme.textPrimaryColor),
+        titleTextStyle: TextStyle(color: colorTheme.textPrimaryColor, fontSize: 20),
+      ),
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: colorTheme.surfaceColor,
+        selectedItemColor: colorTheme.accentColor,
+        unselectedItemColor: colorTheme.textSecondaryColor,
+        type: BottomNavigationBarType.fixed,
+      ),
+      cardTheme: CardThemeData(
+        color: colorTheme.surfaceColor.withAlpha(204),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+      listTileTheme: ListTileThemeData(
+        iconColor: colorTheme.textSecondaryColor,
+        textColor: colorTheme.textPrimaryColor,
+      ),
+      dividerTheme: DividerThemeData(
+        color: colorTheme.textSecondaryColor.withAlpha(51),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final activeServer = ref.watch(serverConfigsProvider).activeServer;
     final themeMode = ref.watch(appThemeModeProvider);
+    final colorTheme = ref.watch(colorThemeProvider);
+
+    // Generate theme based on current color theme
+    final theme = _buildThemeFromColorTheme(colorTheme);
 
     return MaterialApp(
       title: 'Sonic Player',
       debugShowCheckedModeBanner: false,
       themeMode: themeMode.flutterThemeMode,
-      theme: ThemeData.light().copyWith(
-        scaffoldBackgroundColor: Colors.white,
-        colorScheme: ColorScheme.light(
-          primary: const Color(0xFF6B8DD6),
-          secondary: const Color(0xFF8B5CF6),
-          surface: Colors.grey[100]!,
-          onSurface: Colors.black87,
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          centerTitle: true,
-          iconTheme: IconThemeData(color: Colors.black87),
-          titleTextStyle: TextStyle(color: Colors.black87, fontSize: 20),
-        ),
-        bottomNavigationBarTheme: BottomNavigationBarThemeData(
-          backgroundColor: Colors.grey[100]!,
-          selectedItemColor: const Color(0xFF6B8DD6),
-          unselectedItemColor: Colors.black54,
-          type: BottomNavigationBarType.fixed,
-        ),
-        cardTheme: CardThemeData(
-          color: Colors.white,
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-      ),
-      darkTheme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF0A1628),
-        colorScheme: ColorScheme.dark(
-          primary: const Color(0xFF6B8DD6),
-          secondary: const Color(0xFF8B5CF6),
-          surface: const Color(0xFF1E293B),
-          onSurface: Colors.white.withAlpha(230),
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          centerTitle: true,
-        ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: Color(0xFF1E293B),
-          selectedItemColor: Color(0xFF6B8DD6),
-          unselectedItemColor: Colors.white54,
-          type: BottomNavigationBarType.fixed,
-        ),
-        cardTheme: CardThemeData(
-          color: const Color(0xFF1E293B).withAlpha(204),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-      ),
+      theme: theme,
+      darkTheme: theme,
       home: activeServer == null
           ? const ServerConfigScreen()
           : const MainScreen(),
