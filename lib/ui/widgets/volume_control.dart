@@ -6,9 +6,10 @@ class VolumeControl extends ConsumerWidget {
   const VolumeControl({super.key});
 
   void _showVolumeBottomSheet(BuildContext context, WidgetRef ref, double currentVolume) {
+    final colorTheme = ref.read(colorThemeProvider);
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: colorTheme.surfaceColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -47,15 +48,15 @@ class VolumeControl extends ConsumerWidget {
                     children: [
                       IconButton(
                         icon: Icon(
-                          currentVolume == 0 
-                              ? Icons.volume_off 
-                              : currentVolume < 0.3 
-                                  ? Icons.volume_mute 
-                                  : currentVolume < 0.7 
-                                      ? Icons.volume_down 
+                          currentVolume == 0
+                              ? Icons.volume_off
+                              : currentVolume < 0.3
+                                  ? Icons.volume_mute
+                                  : currentVolume < 0.7
+                                      ? Icons.volume_down
                                       : Icons.volume_up,
                           size: 32,
-                          color: currentVolume == 0 ? Colors.white54 : const Color(0xFF6B8DD6),
+                          color: currentVolume == 0 ? Colors.white54 : colorTheme.accentColor,
                         ),
                         onPressed: () {
                           final audioService = ref.read(audioPlayerServiceProvider);
@@ -76,10 +77,10 @@ class VolumeControl extends ConsumerWidget {
                           final volume = snapshot.data ?? currentVolume;
                           return Text(
                             '${(volume * 100).toInt()}%',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF6B8DD6),
+                              color: colorTheme.accentColor,
                             ),
                           );
                         },
@@ -99,9 +100,9 @@ class VolumeControl extends ConsumerWidget {
                         min: 0,
                         max: 1,
                         divisions: 100,
-                        activeColor: const Color(0xFF6B8DD6),
+                        activeColor: colorTheme.accentColor,
                         inactiveColor: Colors.white.withAlpha(26),
-                        thumbColor: const Color(0xFF6B8DD6),
+                        thumbColor: colorTheme.accentColor,
                         onChanged: (value) {
                           final audioService = ref.read(audioPlayerServiceProvider);
                           audioService.setVolume(value);

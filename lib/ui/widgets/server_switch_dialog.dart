@@ -14,8 +14,9 @@ class ServerSwitchDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorTheme = ref.watch(colorThemeProvider);
     return AlertDialog(
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: colorTheme.surfaceColor,
       title: const Text('切换服务器'),
       content: Text(
         '确定要切换到服务器 "$serverName" 吗？\n\n'

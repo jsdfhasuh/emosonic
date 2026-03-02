@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
 class AudioWaveform extends StatefulWidget {
-  final Color color;
+  final Color? color;
   final double height;
   final double width;
   final int barCount;
 
   const AudioWaveform({
     super.key,
-    this.color = const Color(0xFF6B8DD6),
+    this.color,
     this.height = 24,
     this.width = 24,
     this.barCount = 4,
@@ -61,6 +61,7 @@ class _AudioWaveformState extends State<AudioWaveform>
 
   @override
   Widget build(BuildContext context) {
+    final effectiveColor = widget.color ?? Theme.of(context).colorScheme.primary;
     return SizedBox(
       width: widget.width,
       height: widget.height,
@@ -76,7 +77,7 @@ class _AudioWaveformState extends State<AudioWaveform>
                 width: 3,
                 height: widget.height * _animations[index].value,
                 decoration: BoxDecoration(
-                  color: widget.color,
+                  color: effectiveColor,
                   borderRadius: BorderRadius.circular(1.5),
                 ),
               );
@@ -90,14 +91,14 @@ class _AudioWaveformState extends State<AudioWaveform>
 
 // Alternative: Equalizer-style waveform with random heights
 class AudioEqualizer extends StatefulWidget {
-  final Color color;
+  final Color? color;
   final double height;
   final double width;
   final int barCount;
 
   const AudioEqualizer({
     super.key,
-    this.color = const Color(0xFF6B8DD6),
+    this.color,
     this.height = 24,
     this.width = 24,
     this.barCount = 5,
@@ -146,6 +147,7 @@ class _AudioEqualizerState extends State<AudioEqualizer>
 
   @override
   Widget build(BuildContext context) {
+    final effectiveColor = widget.color ?? Theme.of(context).colorScheme.primary;
     return SizedBox(
       width: widget.width,
       height: widget.height,
@@ -160,7 +162,7 @@ class _AudioEqualizerState extends State<AudioEqualizer>
             width: 3,
             height: widget.height * _heights[index],
             decoration: BoxDecoration(
-              color: widget.color,
+              color: effectiveColor,
               borderRadius: BorderRadius.circular(1.5),
             ),
           ),

@@ -48,8 +48,10 @@ class _ServerFormDialogState extends ConsumerState<ServerFormDialog> {
   Widget build(BuildContext context) {
     final isEditing = widget.server != null;
 
+    final colorTheme = ref.watch(colorThemeProvider);
+
     return Dialog(
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: colorTheme.surfaceColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         width: double.maxFinite,

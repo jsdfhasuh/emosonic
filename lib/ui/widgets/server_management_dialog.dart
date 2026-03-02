@@ -14,9 +14,10 @@ class ServerManagementDialog extends ConsumerWidget {
     final serverState = ref.watch(serverConfigsProvider);
     final servers = serverState.servers;
     final activeServer = serverState.activeServer;
+    final colorTheme = ref.watch(colorThemeProvider);
 
     return Dialog(
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: colorTheme.surfaceColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         width: double.maxFinite,
@@ -43,7 +44,7 @@ class ServerManagementDialog extends ConsumerWidget {
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.add, color: Color(0xFF6B8DD6)),
+                    icon: Icon(Icons.add, color: colorTheme.accentColor),
                     onPressed: () => _showAddServerDialog(context, ref),
                   ),
                   IconButton(
@@ -89,6 +90,7 @@ class ServerManagementDialog extends ConsumerWidget {
     ServerConfig server,
     bool isActive,
   ) {
+    final colorTheme = ref.watch(colorThemeProvider);
     return Container(
       decoration: BoxDecoration(
         border: Border(
@@ -111,7 +113,7 @@ class ServerManagementDialog extends ConsumerWidget {
                 server.name,
                 style: TextStyle(
                   fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                  color: isActive ? const Color(0xFF6B8DD6) : Colors.white,
+                  color: isActive ? colorTheme.accentColor : Colors.white,
                 ),
               ),
             ),
@@ -119,14 +121,14 @@ class ServerManagementDialog extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF6B8DD6).withAlpha(51),
+                  color: colorTheme.accentColor.withAlpha(51),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
+                child: Text(
                   '使用中',
                   style: TextStyle(
                     fontSize: 10,
-                    color: Color(0xFF6B8DD6),
+                    color: colorTheme.accentColor,
                   ),
                 ),
               ),
@@ -178,10 +180,11 @@ class ServerManagementDialog extends ConsumerWidget {
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref, ServerConfig server) {
+    final colorTheme = ref.read(colorThemeProvider);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: colorTheme.surfaceColor,
         title: const Text('删除服务器'),
         content: Text('确定要删除服务器 "${server.name}" 吗？'),
         actions: [
