@@ -373,9 +373,10 @@ class _AlbumsViewState extends ConsumerState<_AlbumsView> {
 
   Widget _buildSortOption(String label, AlbumListType type, AlbumListType currentType) {
     final isSelected = type == currentType;
+    final colorTheme = ref.watch(colorThemeProvider);
     return ListTile(
       title: Text(label),
-      trailing: isSelected ? const Icon(Icons.check, color: Color(0xFF6B8DD6)) : null,
+      trailing: isSelected ? Icon(Icons.check, color: colorTheme.accentColor) : null,
       onTap: () {
         ref.read(paginatedAlbumsProvider.notifier).setSortType(type);
         // Reset scroll position to top
@@ -522,13 +523,23 @@ class _AlbumCard extends ConsumerWidget {
                 width: double.infinity,
                 height: double.infinity,
                 cacheKey: 'album_${album.id}',
-                placeholder: Container(
-                  color: const Color(0xFF2D3B4E),
-                  child: const Icon(Icons.album, size: 48, color: Colors.white54),
+                placeholder: Consumer(
+                  builder: (context, ref, child) {
+                    final colorTheme = ref.watch(colorThemeProvider);
+                    return Container(
+                      color: colorTheme.surfaceColor,
+                      child: const Icon(Icons.album, size: 48, color: Colors.white54),
+                    );
+                  },
                 ),
-                errorWidget: Container(
-                  color: const Color(0xFF2D3B4E),
-                  child: const Icon(Icons.album, size: 48, color: Colors.white54),
+                errorWidget: Consumer(
+                  builder: (context, ref, child) {
+                    final colorTheme = ref.watch(colorThemeProvider);
+                    return Container(
+                      color: colorTheme.surfaceColor,
+                      child: const Icon(Icons.album, size: 48, color: Colors.white54),
+                    );
+                  },
                 ),
               ),
             ),
@@ -589,17 +600,27 @@ class _ArtistsView extends ConsumerWidget {
               width: 50,
               height: 50,
               cacheKey: 'artist_${artist.id}',
-              placeholder: Container(
-                width: 50,
-                height: 50,
-                color: const Color(0xFF2D3B4E),
-                child: const Icon(Icons.person, size: 30, color: Colors.white54),
+              placeholder: Consumer(
+                builder: (context, ref, child) {
+                  final colorTheme = ref.watch(colorThemeProvider);
+                  return Container(
+                    width: 50,
+                    height: 50,
+                    color: colorTheme.surfaceColor,
+                    child: const Icon(Icons.person, size: 30, color: Colors.white54),
+                  );
+                },
               ),
-              errorWidget: Container(
-                width: 50,
-                height: 50,
-                color: const Color(0xFF2D3B4E),
-                child: const Icon(Icons.person, size: 30, color: Colors.white54),
+              errorWidget: Consumer(
+                builder: (context, ref, child) {
+                  final colorTheme = ref.watch(colorThemeProvider);
+                  return Container(
+                    width: 50,
+                    height: 50,
+                    color: colorTheme.surfaceColor,
+                    child: const Icon(Icons.person, size: 30, color: Colors.white54),
+                  );
+                },
               ),
             ),
           ),
@@ -685,17 +706,27 @@ class _SongsViewState extends ConsumerState<_SongsView> {
                   width: 50,
                   height: 50,
                   cacheKey: 'song_${song.id}',
-                  placeholder: Container(
-                    width: 50,
-                    height: 50,
-                    color: const Color(0xFF2D3B4E),
-                    child: const Icon(Icons.music_note, size: 30, color: Colors.white54),
+                  placeholder: Consumer(
+                    builder: (context, ref, child) {
+                      final colorTheme = ref.watch(colorThemeProvider);
+                      return Container(
+                        width: 50,
+                        height: 50,
+                        color: colorTheme.surfaceColor,
+                        child: const Icon(Icons.music_note, size: 30, color: Colors.white54),
+                      );
+                    },
                   ),
-                  errorWidget: Container(
-                    width: 50,
-                    height: 50,
-                    color: const Color(0xFF2D3B4E),
-                    child: const Icon(Icons.music_note, size: 30, color: Colors.white54),
+                  errorWidget: Consumer(
+                    builder: (context, ref, child) {
+                      final colorTheme = ref.watch(colorThemeProvider);
+                      return Container(
+                        width: 50,
+                        height: 50,
+                        color: colorTheme.surfaceColor,
+                        child: const Icon(Icons.music_note, size: 30, color: Colors.white54),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -704,9 +735,9 @@ class _SongsViewState extends ConsumerState<_SongsView> {
                   right: 0,
                   bottom: 0,
                   child: Container(
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF6B8DD6),
-                      borderRadius: BorderRadius.only(
+                    decoration: BoxDecoration(
+                      color: ref.watch(colorThemeProvider).accentColor,
+                      borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(4),
                         bottomRight: Radius.circular(4),
                       ),
@@ -750,10 +781,11 @@ class _SongsViewState extends ConsumerState<_SongsView> {
   void _showSongOptions(BuildContext context, WidgetRef ref, Song song) {
     final audioService = ref.read(audioPlayerServiceProvider);
     final isInQueue = audioService.queue.any((s) => s.id == song.id);
+    final colorTheme = ref.watch(colorThemeProvider);
     
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: colorTheme.backgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -786,7 +818,7 @@ class _SongsViewState extends ConsumerState<_SongsView> {
                         placeholder: Container(
                           width: 48,
                           height: 48,
-                          color: const Color(0xFF2D3B4E),
+                          color: colorTheme.surfaceColor,
                           child: const Icon(Icons.music_note, size: 24, color: Colors.white54),
                         ),
                       ),
@@ -861,7 +893,7 @@ class _SongsViewState extends ConsumerState<_SongsView> {
                 label: '查看歌曲信息',
                 onTap: () {
                   Navigator.pop(context);
-                  _showSongInfo(context, song);
+                  _showSongInfo(context, ref, song);
                 },
               ),
               if (isInQueue)
@@ -956,11 +988,12 @@ class _SongsViewState extends ConsumerState<_SongsView> {
     await showPlaylistSelectionDialog(context, song);
   }
 
-  void _showSongInfo(BuildContext context, Song song) {
+  void _showSongInfo(BuildContext context, WidgetRef ref, Song song) {
+    final colorTheme = ref.watch(colorThemeProvider);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: colorTheme.backgroundColor,
         title: const Text('歌曲信息'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1127,17 +1160,27 @@ class _PlaylistsView extends ConsumerWidget {
               width: 50,
               height: 50,
               cacheKey: 'playlist_${playlist.id}',
-              placeholder: Container(
-                width: 50,
-                height: 50,
-                color: const Color(0xFF2D3B4E),
-                child: const Icon(Icons.playlist_play, size: 30, color: Colors.white54),
+              placeholder: Consumer(
+                builder: (context, ref, child) {
+                  final colorTheme = ref.watch(colorThemeProvider);
+                  return Container(
+                    width: 50,
+                    height: 50,
+                    color: colorTheme.surfaceColor,
+                    child: const Icon(Icons.playlist_play, size: 30, color: Colors.white54),
+                  );
+                },
               ),
-              errorWidget: Container(
-                width: 50,
-                height: 50,
-                color: const Color(0xFF2D3B4E),
-                child: const Icon(Icons.playlist_play, size: 30, color: Colors.white54),
+              errorWidget: Consumer(
+                builder: (context, ref, child) {
+                  final colorTheme = ref.watch(colorThemeProvider);
+                  return Container(
+                    width: 50,
+                    height: 50,
+                    color: colorTheme.surfaceColor,
+                    child: const Icon(Icons.playlist_play, size: 30, color: Colors.white54),
+                  );
+                },
               ),
             ),
           ),
@@ -1327,7 +1370,7 @@ class _CachedViewState extends ConsumerState<_CachedView> {
           margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -1349,18 +1392,23 @@ class _CachedViewState extends ConsumerState<_CachedView> {
                   ],
                 ),
               ),
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF6B8DD6).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: const Icon(
-                  Icons.storage,
-                  size: 32,
-                  color: Color(0xFF6B8DD6),
-                ),
+              Consumer(
+                builder: (context, ref, child) {
+                  final colorTheme = ref.watch(colorThemeProvider);
+                  return Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: colorTheme.accentColor.withAlpha(51),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Icon(
+                      Icons.storage,
+                      size: 32,
+                      color: colorTheme.accentColor,
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -1535,17 +1583,22 @@ class _CachedViewState extends ConsumerState<_CachedView> {
   }
 
   Widget _buildDefaultCover() {
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: const Color(0xFF2D3B4E),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: const Icon(
-        Icons.music_note,
-        color: Color(0xFF6B8DD6),
-      ),
+    return Consumer(
+      builder: (context, ref, child) {
+        final colorTheme = ref.watch(colorThemeProvider);
+        return Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: colorTheme.surfaceColor,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            Icons.music_note,
+            color: colorTheme.accentColor,
+          ),
+        );
+      },
     );
   }
 }
