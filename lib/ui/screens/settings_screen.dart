@@ -146,13 +146,49 @@ class SettingsScreen extends ConsumerWidget {
 
           // Playback Control
           _buildSectionHeader(context, ref, '播放控制'),
-          _buildSwitchTile(
-            context,
-            ref,
-            '循环播放',
-            '播放完队列后自动重复',
-            false,
-            (value) {},
+          Consumer(
+            builder: (context, ref, child) {
+              final loopModeAsync = ref.watch(loopModeProvider);
+              return loopModeAsync.when(
+                data: (loopMode) {
+                  final isLoopEnabled = loopMode != LoopMode.off;
+                  return _buildSwitchTile(
+                    context,
+                    ref,
+                    '循环播放',
+                    '播放完队列后自动重复',
+                    isLoopEnabled,
+                    (value) async {
+                      final audioService = ref.read(audioPlayerServiceProvider);
+                      final newMode = value ? LoopMode.all : LoopMode.off;
+                      await audioService.setLoopMode(newMode);
+                      if (context.mounted) {
+                        showTopSnackBar(
+                          context,
+                          message: value ? '已开启循环播放' : '已关闭循环播放',
+                        );
+                      }
+                    },
+                  );
+                },
+                loading: () => _buildSwitchTile(
+                  context,
+                  ref,
+                  '循环播放',
+                  '播放完队列后自动重复',
+                  false,
+                  (value) {},
+                ),
+                error: (_, __) => _buildSwitchTile(
+                  context,
+                  ref,
+                  '循环播放',
+                  '播放完队列后自动重复',
+                  false,
+                  (value) {},
+                ),
+              );
+            },
           ),
           Consumer(
             builder: (context, ref, child) {
