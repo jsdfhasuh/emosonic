@@ -54,17 +54,18 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
   Widget build(BuildContext context) {
     _logger.debug('Building PlaylistDetailScreen');
     final songsAsync = ref.watch(playlistSongsProvider(widget.playlist.id));
+    final colorTheme = ref.watch(colorThemeProvider);
 
     return Scaffold(
       body: songsAsync.when(
-        data: (songs) => _buildContent(context, ref, songs),
+        data: (songs) => _buildContent(context, ref, songs, colorTheme),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => _buildErrorWidget(error, stack),
       ),
     );
   }
 
-  Widget _buildContent(BuildContext context, WidgetRef ref, List<Song> songs) {
+  Widget _buildContent(BuildContext context, WidgetRef ref, List<Song> songs, AppColorTheme colorTheme) {
     if (songs.isEmpty) {
       _logger.warning('No songs found for playlist: ${widget.playlist.name}');
       return const Center(child: Text('歌单中没有歌曲'));
@@ -77,8 +78,8 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
         SliverAppBar(
           pinned: true,
           expandedHeight: 0,
-          backgroundColor: _isScrolled 
-              ? const Color(0xFF1E293B) 
+          backgroundColor: _isScrolled
+              ? colorTheme.backgroundColor
               : Colors.transparent,
           elevation: _isScrolled ? 4 : 0,
           leading: IconButton(
@@ -121,13 +122,13 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       placeholder: Container(
                         width: 200,
                         height: 200,
-                        color: const Color(0xFF2D3B4E),
+                        color: colorTheme.surfaceColor,
                         child: const Icon(Icons.playlist_play, size: 80, color: Colors.white54),
                       ),
                       errorWidget: Container(
                         width: 200,
                         height: 200,
-                        color: const Color(0xFF2D3B4E),
+                        color: colorTheme.surfaceColor,
                         child: const Icon(Icons.playlist_play, size: 80, color: Colors.white54),
                       ),
                     ),
@@ -179,7 +180,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       icon: const Icon(Icons.play_arrow),
                       label: const Text('播放全部'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6B8DD6),
+                        backgroundColor: colorTheme.accentColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                         shape: RoundedRectangleBorder(
@@ -193,7 +194,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       onPressed: () => _shufflePlay(context, ref, songs),
                       icon: const Icon(Icons.shuffle),
                       style: IconButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E293B),
+                        backgroundColor: colorTheme.backgroundColor,
                         foregroundColor: Colors.white,
                       ),
                     ),
@@ -404,9 +405,10 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
   }
 
   void _showSongOptions(BuildContext context, WidgetRef ref, Song song, int index) {
+    final colorTheme = ref.read(colorThemeProvider);
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: colorTheme.backgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),

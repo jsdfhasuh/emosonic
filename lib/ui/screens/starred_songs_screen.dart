@@ -55,23 +55,24 @@ class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(starredSongsProvider);
+    final colorTheme = ref.watch(colorThemeProvider);
 
     return Scaffold(
       body: Column(
         children: [
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _onRefresh,
-              child: _buildContent(state),
-            ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _onRefresh,
+            child: _buildContent(state, colorTheme),
           ),
+        ),
           const MiniPlayer(),
         ],
       ),
     );
   }
 
-  Widget _buildContent(StarredSongsState state) {
+  Widget _buildContent(StarredSongsState state, AppColorTheme colorTheme) {
     if (state.isLoading && state.songs.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -117,7 +118,7 @@ class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
       slivers: [
         // Header with cover and play button
         SliverToBoxAdapter(
-          child: _buildHeader(state),
+          child: _buildHeader(state, colorTheme),
         ),
         // Song list (no pagination)
         SliverList(
@@ -126,7 +127,7 @@ class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
               final song = state.songs[index];
               return GestureDetector(
                 onTap: () => _playSong(song),
-                child: _buildSongItem(context, song, index),
+                child: _buildSongItem(context, song, index, colorTheme),
               );
             },
             childCount: state.songs.length,
@@ -140,7 +141,7 @@ class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
     );
   }
 
-  Widget _buildHeader(StarredSongsState state) {
+  Widget _buildHeader(StarredSongsState state, AppColorTheme colorTheme) {
     final firstSong = state.songs.first;
     final apiClient = ref.read(apiClientProvider);
     
@@ -160,10 +161,10 @@ class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
                     width: 200,
                     height: 200,
                     cacheKey: 'starred_cover_${firstSong.id}',
-                    placeholder: _buildPlaceholder(),
-                    errorWidget: _buildPlaceholder(),
+                    placeholder: _buildPlaceholder(colorTheme),
+                    errorWidget: _buildPlaceholder(colorTheme),
                   )
-                : _buildPlaceholder(),
+                : _buildPlaceholder(colorTheme),
           ),
           const SizedBox(height: 16),
           // Title
@@ -197,7 +198,7 @@ class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
                 style: TextStyle(fontSize: 16),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6B8DD6),
+                backgroundColor: colorTheme.accentColor,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
@@ -210,12 +211,12 @@ class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
     );
   }
 
-  Widget _buildPlaceholder() {
+  Widget _buildPlaceholder(AppColorTheme colorTheme) {
     return Container(
       width: 200,
       height: 200,
       decoration: BoxDecoration(
-        color: const Color(0xFF2D3B4E),
+        color: colorTheme.surfaceColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: const Icon(
@@ -226,7 +227,7 @@ class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
     );
   }
 
-  Widget _buildSongItem(BuildContext context, Song song, int index) {
+  Widget _buildSongItem(BuildContext context, Song song, int index, AppColorTheme colorTheme) {
     final isCurrentSong = ref.watch(currentSongProvider)?.id == song.id;
     final isPlaying = ref.watch(isPlayingProvider);
 
@@ -240,13 +241,13 @@ class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
             height: 32,
             alignment: Alignment.center,
             child: isCurrentSong && isPlaying
-                ? const Icon(Icons.equalizer, color: Color(0xFF6B8DD6), size: 20)
+                ? Icon(Icons.equalizer, color: colorTheme.accentColor, size: 20)
                 : Text(
                     '${index + 1}',
                     style: TextStyle(
                       fontSize: 14,
                       color: isCurrentSong
-                          ? const Color(0xFF6B8DD6)
+                          ? colorTheme.accentColor
                           : Colors.white.withAlpha(128),
                       fontWeight: isCurrentSong ? FontWeight.bold : FontWeight.normal,
                     ),
@@ -263,7 +264,7 @@ class _StarredSongsScreenState extends ConsumerState<StarredSongsScreen> {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: isCurrentSong ? FontWeight.w600 : FontWeight.w500,
-                    color: isCurrentSong ? const Color(0xFF6B8DD6) : Colors.white,
+                    color: isCurrentSong ? colorTheme.accentColor : Colors.white,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

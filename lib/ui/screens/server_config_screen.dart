@@ -111,6 +111,7 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
     final logPaths = await Logger.getLogPaths();
     String currentLog = '';
     String previousLog = '';
+    final colorTheme = ref.read(colorThemeProvider);
     
     try {
       final currentFile = File(logPaths['current']!);
@@ -135,7 +136,7 @@ class _ServerConfigScreenState extends ConsumerState<ServerConfigScreen> {
     showDialog(
       context: dialogContext,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: colorTheme.backgroundColor,
         title: const Text('应用日志'),
         content: SizedBox(
           width: double.maxFinite,

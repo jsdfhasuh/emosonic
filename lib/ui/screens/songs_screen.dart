@@ -56,17 +56,18 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
   Widget build(BuildContext context) {
     _logger.debug('Building SongsScreen');
     final songsAsync = ref.watch(songsProvider(widget.album.id));
+    final colorTheme = ref.watch(colorThemeProvider);
 
     return Scaffold(
       body: songsAsync.when(
-        data: (songs) => _buildContent(context, ref, songs),
+        data: (songs) => _buildContent(context, ref, songs, colorTheme),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => _buildErrorWidget(error, stack),
       ),
     );
   }
 
-  Widget _buildContent(BuildContext context, WidgetRef ref, List<Song> songs) {
+  Widget _buildContent(BuildContext context, WidgetRef ref, List<Song> songs, AppColorTheme colorTheme) {
     if (songs.isEmpty) {
       _logger.warning('No songs found for album: ${widget.album.name}');
       return const Center(child: Text('没有找到歌曲'));
@@ -79,8 +80,8 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
         SliverAppBar(
           pinned: true,
           expandedHeight: 0,
-          backgroundColor: _isScrolled 
-              ? const Color(0xFF1E293B) 
+          backgroundColor: _isScrolled
+              ? colorTheme.backgroundColor
               : Colors.transparent,
           elevation: _isScrolled ? 4 : 0,
           leading: IconButton(
@@ -101,7 +102,7 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
 
         // Album Header (Hero Section)
         SliverToBoxAdapter(
-          child: _buildAlbumHeader(context, ref),
+          child: _buildAlbumHeader(context, ref, colorTheme),
         ),
 
         // Sticky Control Bar
@@ -110,13 +111,14 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
           delegate: _ControlBarDelegate(
             songCount: songs.length,
             onPlayAll: () => _playAll(context, songs),
+            colorTheme: colorTheme,
           ),
         ),
 
         // Song List
         SliverList(
           delegate: SliverChildBuilderDelegate(
-            (context, index) => _buildSongItem(context, ref, songs, songs[index], index),
+            (context, index) => _buildSongItem(context, ref, songs, songs[index], index, colorTheme),
             childCount: songs.length,
           ),
         ),
@@ -129,7 +131,7 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
     );
   }
 
-  Widget _buildAlbumHeader(BuildContext context, WidgetRef ref) {
+  Widget _buildAlbumHeader(BuildContext context, WidgetRef ref, AppColorTheme colorTheme) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       child: Row(
@@ -141,15 +143,15 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
             child: ImageCacheManager().getCachedImage(
               imageUrl: widget.album.coverArt != null
                   ? ref.read(apiClientProvider).getCoverArtUrl(
-                      widget.album.coverArt!, 
+                      widget.album.coverArt!,
                       itemId: widget.album.id
                     )
                   : '',
               width: 120,
               height: 120,
               cacheKey: 'album_${widget.album.id}',
-              placeholder: _buildPlaceholder(),
-              errorWidget: _buildPlaceholder(),
+              placeholder: _buildPlaceholder(colorTheme),
+              errorWidget: _buildPlaceholder(colorTheme),
             ),
           ),
           const SizedBox(width: 16),
@@ -196,19 +198,19 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
     );
   }
 
-  Widget _buildPlaceholder() {
+  Widget _buildPlaceholder(AppColorTheme colorTheme) {
     return Container(
       width: 120,
       height: 120,
       decoration: BoxDecoration(
-        color: const Color(0xFF2D3B4E),
+        color: colorTheme.surfaceColor,
         borderRadius: BorderRadius.circular(8),
       ),
       child: const Icon(Icons.album, size: 50, color: Colors.white54),
     );
   }
 
-  Widget _buildSongItem(BuildContext context, WidgetRef ref, List<Song> songs, Song song, int index) {
+  Widget _buildSongItem(BuildContext context, WidgetRef ref, List<Song> songs, Song song, int index, AppColorTheme colorTheme) {
     final isCurrentSong = ref.watch(currentSongProvider)?.id == song.id;
     final isPlaying = ref.watch(isPlayingProvider);
 
@@ -222,13 +224,13 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
             height: 32,
             alignment: Alignment.center,
             child: isCurrentSong && isPlaying
-                ? const Icon(Icons.equalizer, color: Color(0xFF6B8DD6), size: 20)
+                ? Icon(Icons.equalizer, color: colorTheme.accentColor, size: 20)
                 : Text(
                     '${index + 1}',
                     style: TextStyle(
                       fontSize: 14,
-                      color: isCurrentSong 
-                          ? const Color(0xFF6B8DD6)
+                      color: isCurrentSong
+                          ? colorTheme.accentColor
                           : Colors.white.withAlpha(128),
                       fontWeight: isCurrentSong ? FontWeight.bold : FontWeight.normal,
                     ),
@@ -245,7 +247,7 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: isCurrentSong ? FontWeight.w600 : FontWeight.w500,
-                    color: isCurrentSong ? const Color(0xFF6B8DD6) : Colors.white,
+                    color: isCurrentSong ? colorTheme.accentColor : Colors.white,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -264,14 +266,14 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF6B8DD6).withAlpha(51),
+                        color: colorTheme.accentColor.withAlpha(51),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         'flac ${song.bitRate ?? 0}K',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10,
-                          color: Color(0xFF6B8DD6),
+                          color: colorTheme.accentColor,
                         ),
                       ),
                     ),
@@ -308,10 +310,11 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
   void _showSongOptions(BuildContext context, WidgetRef ref, List<Song> songs, Song song) {
     final audioService = ref.read(audioPlayerServiceProvider);
     final isInQueue = audioService.queue.any((s) => s.id == song.id);
-    
+    final colorTheme = ref.read(colorThemeProvider);
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: colorTheme.backgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -344,7 +347,7 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
                       placeholder: Container(
                         width: 48,
                         height: 48,
-                        color: const Color(0xFF2D3B4E),
+                        color: colorTheme.surfaceColor,
                         child: const Icon(Icons.music_note, size: 24, color: Colors.white54),
                       ),
                     ),
@@ -419,7 +422,7 @@ class _SongsScreenState extends ConsumerState<SongsScreen> {
               label: '查看歌曲信息',
               onTap: () {
                 Navigator.pop(context);
-                _showSongInfo(context, song);
+                _showSongInfo(context, ref, song);
               },
             ),
             _buildMenuItem(
@@ -566,11 +569,12 @@ Widget _buildMenuItem({
     await showPlaylistSelectionDialog(context, song);
   }
 
-  void _showSongInfo(BuildContext context, Song song) {
+  void _showSongInfo(BuildContext context, WidgetRef ref, Song song) {
+    final colorTheme = ref.read(colorThemeProvider);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: colorTheme.backgroundColor,
         title: const Text('歌曲信息'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -711,13 +715,14 @@ Widget _buildMenuItem({
 class _ControlBarDelegate extends SliverPersistentHeaderDelegate {
   final int songCount;
   final VoidCallback onPlayAll;
+  final AppColorTheme colorTheme;
 
-  _ControlBarDelegate({required this.songCount, required this.onPlayAll});
+  _ControlBarDelegate({required this.songCount, required this.onPlayAll, required this.colorTheme});
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      color: const Color(0xFF0A1628),
+      color: colorTheme.backgroundColor.withAlpha(230),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
@@ -727,7 +732,7 @@ class _ControlBarDelegate extends SliverPersistentHeaderDelegate {
             icon: const Icon(Icons.play_arrow, size: 20),
             label: Text('全部播放 (共$songCount首)'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6B8DD6),
+              backgroundColor: colorTheme.accentColor,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               shape: RoundedRectangleBorder(

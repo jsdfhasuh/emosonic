@@ -141,6 +141,7 @@ class _CacheManagerScreenState extends ConsumerState<CacheManagerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorTheme = ref.watch(colorThemeProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('缓存管理'),
@@ -165,7 +166,7 @@ class _CacheManagerScreenState extends ConsumerState<CacheManagerScreen> {
             margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
+              color: colorTheme.backgroundColor,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -191,13 +192,13 @@ class _CacheManagerScreenState extends ConsumerState<CacheManagerScreen> {
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF6B8DD6).withOpacity(0.2),
+                    color: colorTheme.accentColor.withAlpha(51),
                     borderRadius: BorderRadius.circular(30),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.storage,
                     size: 32,
-                    color: Color(0xFF6B8DD6),
+                    color: colorTheme.accentColor,
                   ),
                 ),
               ],
@@ -247,7 +248,7 @@ class _CacheManagerScreenState extends ConsumerState<CacheManagerScreen> {
                                 width: 48,
                                 height: 48,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF2D3B4E),
+                                  color: colorTheme.surfaceColor,
                                   borderRadius: BorderRadius.circular(8),
                                   image: song.coverArtLocalPath != null
                                       ? DecorationImage(
@@ -257,9 +258,9 @@ class _CacheManagerScreenState extends ConsumerState<CacheManagerScreen> {
                                       : null,
                                 ),
                                 child: song.coverArtLocalPath == null
-                                    ? const Icon(
+                                    ? Icon(
                                         Icons.music_note,
-                                        color: Color(0xFF6B8DD6),
+                                        color: colorTheme.accentColor,
                                       )
                                     : null,
                               ),
