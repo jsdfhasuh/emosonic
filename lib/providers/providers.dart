@@ -22,6 +22,9 @@ export 'auto_resume_playback_provider.dart';
 // Export color theme provider
 export 'color_theme_provider.dart';
 
+// Export sleep timer provider
+export 'sleep_timer_provider.dart';
+
 // Import server configs provider (must be before apiClientProvider)
 // Using import instead of export to make serverConfigsProvider available immediately
 import 'server_configs_provider.dart';

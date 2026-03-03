@@ -177,11 +177,16 @@ class SettingsScreen extends ConsumerWidget {
               );
             },
           ),
-          _buildListTile(
-            '定时停止',
-            '未设置',
-            Icons.timer,
-            () {},
+          Consumer(
+            builder: (context, ref, child) {
+              final sleepTimerState = ref.watch(sleepTimerProvider);
+              return _buildListTile(
+                '定时停止',
+                sleepTimerState.displayText,
+                Icons.timer,
+                () => _showSleepTimerPicker(context, ref),
+              );
+            },
           ),
           _buildSwitchTile(
             context,
@@ -1089,6 +1094,101 @@ class SettingsScreen extends ConsumerWidget {
               child: const Text('取消'),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  /// Show sleep timer picker bottom sheet.
+  void _showSleepTimerPicker(BuildContext context, WidgetRef ref) {
+    final sleepTimerState = ref.read(sleepTimerProvider);
+    final countdownOptions = [15, 30, 45, 60, 90, 120];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(51),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          '定时停止',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      if (sleepTimerState.isActive)
+                        TextButton(
+                          onPressed: () {
+                            ref.read(sleepTimerProvider.notifier).cancelTimer();
+                            Navigator.pop(context);
+                            showTopSnackBar(context, message: '已取消定时停止');
+                          },
+                          child: const Text(
+                            '取消定时',
+                            style: TextStyle(color: Colors.redAccent),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (sleepTimerState.isActive)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.timer, size: 16, color: Colors.white54),
+                        const SizedBox(width: 8),
+                        Text(
+                          '当前: ${sleepTimerState.displayText}',
+                          style: const TextStyle(color: Colors.white54),
+                        ),
+                      ],
+                    ),
+                  ),
+                const Divider(),
+                ...countdownOptions.map((minutes) {
+                  final label = minutes >= 60
+                      ? '${minutes ~/ 60} 小时${minutes % 60 > 0 ? ' ${minutes % 60} 分钟' : ''}'
+                      : '$minutes 分钟';
+                  return ListTile(
+                    leading: const Icon(Icons.hourglass_bottom),
+                    title: Text(label),
+                    onTap: () async {
+                      await ref.read(sleepTimerProvider.notifier).setCountdown(minutes);
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        showTopSnackBar(
+                          context,
+                          message: '已设置 $label 后停止播放',
+                        );
+                      }
+                    },
+                  );
+                }),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
         );
       },
     );
